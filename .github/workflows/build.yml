@@ -20,13 +20,13 @@ jobs:
 
       - name: Build DLL from dll folder
         run: |
-          cd dll
-          go build -buildmode=c-shared -o counter.dll
+          cd codex
+          go build -buildmode=c-shared -o codex.dll
 
       - name: Upload DLL Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: counter-dll
+          name: codex-dll
           path: |
-            dll/counter.dll
-            dll/counter.h
+            codex/codex.dll
+            codex/codex.h

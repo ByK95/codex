@@ -1,0 +1,281 @@
+package inventory
+
+type Item struct {
+	ID           int
+	Quantity     int
+	Stackable    bool
+	MaxStackSize int
+}
+
+type Inventory struct {
+	Slots []*Item
+
+	// itemID → total quantity in inventory (O(1) count)
+	itemCounts map[int]int
+
+	// itemID → slice of slot indexes that contain that item with space for stacking
+	partialStacks map[int][]int
+}
+
+type DraggedSlot struct {
+	Item  *Item
+	Empty bool
+}
+
+var draggedSlot = DraggedSlot{Empty: true}
+var inventory *Inventory
+
+func NewInventory(slotCount int) {
+	inventory = &Inventory{
+		Slots:         make([]*Item, slotCount),
+		itemCounts:    make(map[int]int),
+		partialStacks: make(map[int][]int),
+	}
+}
+
+// Adds item to inventory
+func (inv *Inventory) AddItem(id int, stackable bool, maxStackSize int, qty int) bool {
+	if stackable {
+		// Fill partial stacks first
+		slots, ok := inv.partialStacks[id]
+		if ok {
+			for _, idx := range slots {
+				slot := inv.Slots[idx]
+				space := slot.MaxStackSize - slot.Quantity
+				add := min(qty, space)
+				slot.Quantity += add
+				inv.itemCounts[id] += add
+				qty -= add
+				if slot.Quantity == slot.MaxStackSize {
+					inv.removePartialStack(id, idx)
+				}
+				if qty == 0 {
+					return true
+				}
+			}
+		}
+	}
+
+	// Add new stacks in empty slots
+	for i, slot := range inv.Slots {
+		if slot == nil || slot.Quantity == 0 {
+			add := qty
+			if stackable {
+				add = min(qty, maxStackSize)
+			} else {
+				//Non stackable always will be 1
+				add = 1
+			}
+			newItem := &Item{
+				ID:           id,
+				Quantity:     add,
+				Stackable:    stackable,
+				MaxStackSize: maxStackSize,
+			}
+			inv.Slots[i] = newItem
+			inv.itemCounts[id] += add
+			qty -= add
+
+			if stackable && add < maxStackSize {
+				inv.partialStacks[id] = append(inv.partialStacks[id], i)
+			}
+			if qty == 0 {
+				return true
+			}
+		}
+	}
+	return qty == 0
+}
+
+func (inv *Inventory) removePartialStack(itemID int, slotIdx int) {
+	slots := inv.partialStacks[itemID]
+	for i, idx := range slots {
+		if idx == slotIdx {
+			inv.partialStacks[itemID] = append(slots[:i], slots[i+1:]...)
+			break
+		}
+	}
+}
+
+func (inv *Inventory) RemoveItem(id int, qty int) bool {
+	for i, slot := range inv.Slots {
+		if slot != nil && slot.ID == id {
+			remove := min(qty, slot.Quantity)
+			slot.Quantity -= remove
+			inv.itemCounts[id] -= remove
+			qty -= remove
+
+			if slot.Quantity == 0 {
+				inv.removePartialStack(id, i)
+				inv.Slots[i] = nil
+			} else if slot.Stackable && slot.Quantity < slot.MaxStackSize {
+				inv.addPartialStack(id, i)
+			}
+
+			if qty == 0 {
+				return true
+			}
+		}
+	}
+	return qty == 0
+}
+
+func (inv *Inventory) addPartialStack(itemID int, slotIdx int) {
+	slots := inv.partialStacks[itemID]
+	for _, idx := range slots {
+		if idx == slotIdx {
+			return // already present
+		}
+	}
+	inv.partialStacks[itemID] = append(inv.partialStacks[itemID], slotIdx)
+}
+
+func (inv *Inventory) CountItem(id int) int {
+	return inv.itemCounts[id]
+}
+
+func (inv *Inventory) PickUpFromSlot(slotIdx int) bool {
+	if slotIdx < 0 || slotIdx >= len(inv.Slots) {
+		return false
+	}
+
+	slot := inv.Slots[slotIdx]
+	if slot == nil {
+		return false
+	}
+
+	if !draggedSlot.Empty {
+		inv.swapSlots(slotIdx)
+		return true
+	}
+
+	draggedSlot.Item = slot
+	draggedSlot.Empty = false
+	inv.Slots[slotIdx] = nil
+	inv.itemCounts[draggedSlot.Item.ID] -= draggedSlot.Item.Quantity
+
+	return true
+}
+
+func (inv *Inventory) DropToSlot(targetIdx int) bool {
+	if draggedSlot.Empty || targetIdx < 0 || targetIdx >= len(inv.Slots) {
+		return false
+	}
+
+	target := inv.Slots[targetIdx]
+
+	if target == nil || target.Quantity == 0 {
+		// Empty target slot: move all dragged items there
+		inv.Slots[targetIdx] = draggedSlot.Item
+		inv.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
+		draggedSlot.Empty = true
+		draggedSlot.Item = nil
+		return true
+	}
+
+	// If item IDs differ OR items are same but not stackable, swap
+	if target.ID != draggedSlot.Item.ID || !target.Stackable {
+		inv.swapSlots(targetIdx)
+		return true
+	}
+
+	// Same item and stackable: add as much as possible to target stack, keep leftovers dragged
+	totalQty := target.Quantity + draggedSlot.Item.Quantity
+	if totalQty <= target.MaxStackSize {
+		target.Quantity = totalQty
+		inv.itemCounts[target.ID] += draggedSlot.Item.Quantity
+		draggedSlot.Empty = true
+		draggedSlot.Item = nil
+	} else {
+		toAdd := target.MaxStackSize - target.Quantity
+		target.Quantity = target.MaxStackSize
+		inv.itemCounts[target.ID] += toAdd
+		draggedSlot.Item.Quantity -= toAdd
+		// draggedSlot keeps leftover quantity
+	}
+
+	// Update partialStacks accordingly
+	if target.Quantity == target.MaxStackSize {
+		inv.removePartialStack(target.ID, targetIdx)
+	} else {
+		inv.addPartialStack(target.ID, targetIdx)
+	}
+
+	return true
+}
+
+func (inv *Inventory) swapSlots(targetIdx int) {
+	target := inv.Slots[targetIdx]
+
+	// Update counts before swap
+	inv.itemCounts[target.ID] -= target.Quantity
+
+	oldTarget := *target
+	inv.Slots[targetIdx] = draggedSlot.Item
+	draggedSlot.Item = &oldTarget
+
+	// Update counts after swap
+	inv.itemCounts[inv.Slots[targetIdx].ID] += inv.Slots[targetIdx].Quantity
+}
+
+func (inv *Inventory) TakeOneFromSlot(slotIdx int) bool {
+	if slotIdx < 0 || slotIdx >= len(inv.Slots) {
+		return false
+	}
+	slot := inv.Slots[slotIdx]
+	if slot == nil || slot.Quantity == 0 {
+		return false
+	}
+
+	if !slot.Stackable {
+		return false
+	}
+
+	if draggedSlot.Empty {
+		draggedSlot.Item = &Item{
+			ID:           slot.ID,
+			Quantity:     1,
+			Stackable:    slot.Stackable,
+			MaxStackSize: slot.MaxStackSize,
+		}
+		draggedSlot.Empty = false
+		slot.Quantity--
+		inv.itemCounts[slot.ID]--
+		if slot.Quantity == 0 {
+			inv.removePartialStack(slot.ID, slotIdx)
+			inv.Slots[slotIdx] = nil
+		}
+		return true
+	}
+
+	if !draggedSlot.Empty && draggedSlot.Item.ID != slot.ID {
+		return false
+	}
+
+	if !draggedSlot.Empty && draggedSlot.Item.ID == slot.ID {
+		if draggedSlot.Item.Quantity >= draggedSlot.Item.MaxStackSize {
+			// Can't exceed max stack size
+			return false
+		}
+		draggedSlot.Item.Quantity++
+		slot.Quantity--
+		inv.itemCounts[slot.ID]--
+
+		if slot.Quantity == 0 {
+			inv.removePartialStack(slot.ID, slotIdx)
+			inv.Slots[slotIdx] = nil
+		} else if slot.Stackable && slot.Quantity < slot.MaxStackSize {
+			inv.addPartialStack(slot.ID, slotIdx)
+		}
+		return true
+	}
+
+	return false
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
