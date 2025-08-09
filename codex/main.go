@@ -74,7 +74,11 @@ func InventoryGetSlotInfo(slotIdx C.int, outID *C.int, outQty *C.int, outStackab
     slot := inv.Slots[idx]
     *outID = C.int(slot.ID)
     *outQty = C.int(slot.Quantity)
-    *outStackable = C.int(slot.Stackable)
+    if slot.Stackable {
+        *outStackable = 1
+    } else {
+        *outStackable = 0
+    }
     return 1
 }
 
