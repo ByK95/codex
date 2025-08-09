@@ -21,13 +21,19 @@ func InventoryNew(slotCount C.int) {
 }
 
 //export InventoryAddItem
-func InventoryAddItem(id C.int, stackable C.bool, maxStackSize C.int, qty C.int) C.bool {
-    return C.bool(inv.AddItem(int(id), bool(stackable), int(maxStackSize), int(qty)))
+func InventoryAddItem(id C.int, stackable C.int, maxStackSize C.int, qty C.int) C.int {
+    if inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty)) {
+        return 1
+    }
+    return 0
 }
 
 //export InventoryRemoveItem
-func InventoryRemoveItem(id C.int, qty C.int) C.bool {
-    return C.bool(inv.RemoveItem(int(id), int(qty)))
+func InventoryRemoveItem(id C.int, qty C.int) C.int {
+    if inv.RemoveItem(int(id), int(qty)) {
+        return 1
+    }
+    return 0
 }
 
 //export InventoryCountItem
@@ -36,19 +42,29 @@ func InventoryCountItem(id C.int) C.int {
 }
 
 //export InventoryPickUpFromSlot
-func InventoryPickUpFromSlot(slotIdx C.int) C.bool {
-    return C.bool(inv.PickUpFromSlot(draggedSlot, int(slotIdx)))
+func InventoryPickUpFromSlot(slotIdx C.int) C.int {
+    if inv.PickUpFromSlot(draggedSlot, int(slotIdx)) {
+        return 1
+    }
+    return 0
 }
 
 //export InventoryDropToSlot
-func InventoryDropToSlot(targetIdx C.int) C.bool {
-    return C.bool(inv.DropToSlot(draggedSlot, int(targetIdx)))
+func InventoryDropToSlot(targetIdx C.int) C.int {
+    if inv.DropToSlot(draggedSlot, int(targetIdx)) {
+        return 1
+    }
+    return 0
 }
 
 //export InventoryTakeOneFromSlot
-func InventoryTakeOneFromSlot(slotIdx C.int) C.bool {
-    return C.bool(inv.TakeOneFromSlot(draggedSlot, int(slotIdx)))
+func InventoryTakeOneFromSlot(slotIdx C.int) C.int {
+    if inv.TakeOneFromSlot(draggedSlot, int(slotIdx)) {
+        return 1
+    }
+    return 0
 }
+
 
 //export Increment
 func Increment() {
