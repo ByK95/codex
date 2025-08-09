@@ -18,7 +18,7 @@ jobs:
       - name: Install MinGW
         run: choco install mingw -y
 
-      - name: Build DLL from dll folder
+      - name: Build DLL from codex folder
         run: |
           cd codex
           go build -buildmode=c-shared -o codex.dll

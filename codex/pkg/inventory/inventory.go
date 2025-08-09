@@ -22,11 +22,8 @@ type DraggedSlot struct {
 	Empty bool
 }
 
-var draggedSlot = DraggedSlot{Empty: true}
-var inventory *Inventory
-
-func NewInventory(slotCount int) {
-	inventory = &Inventory{
+func NewInventory(slotCount int) *Inventory {
+	return &Inventory{
 		Slots:         make([]*Item, slotCount),
 		itemCounts:    make(map[int]int),
 		partialStacks: make(map[int][]int),
@@ -134,7 +131,7 @@ func (inv *Inventory) CountItem(id int) int {
 	return inv.itemCounts[id]
 }
 
-func (inv *Inventory) PickUpFromSlot(slotIdx int) bool {
+func (inv *Inventory) PickUpFromSlot(draggedSlot *DraggedSlot, slotIdx int) bool {
 	if slotIdx < 0 || slotIdx >= len(inv.Slots) {
 		return false
 	}
@@ -145,7 +142,7 @@ func (inv *Inventory) PickUpFromSlot(slotIdx int) bool {
 	}
 
 	if !draggedSlot.Empty {
-		inv.swapSlots(slotIdx)
+		inv.swapSlots(draggedSlot, slotIdx)
 		return true
 	}
 
@@ -157,7 +154,7 @@ func (inv *Inventory) PickUpFromSlot(slotIdx int) bool {
 	return true
 }
 
-func (inv *Inventory) DropToSlot(targetIdx int) bool {
+func (inv *Inventory) DropToSlot(draggedSlot *DraggedSlot, targetIdx int) bool {
 	if draggedSlot.Empty || targetIdx < 0 || targetIdx >= len(inv.Slots) {
 		return false
 	}
@@ -175,7 +172,7 @@ func (inv *Inventory) DropToSlot(targetIdx int) bool {
 
 	// If item IDs differ OR items are same but not stackable, swap
 	if target.ID != draggedSlot.Item.ID || !target.Stackable {
-		inv.swapSlots(targetIdx)
+		inv.swapSlots(draggedSlot, targetIdx)
 		return true
 	}
 
@@ -204,7 +201,7 @@ func (inv *Inventory) DropToSlot(targetIdx int) bool {
 	return true
 }
 
-func (inv *Inventory) swapSlots(targetIdx int) {
+func (inv *Inventory) swapSlots(draggedSlot *DraggedSlot, targetIdx int) {
 	target := inv.Slots[targetIdx]
 
 	// Update counts before swap
@@ -218,7 +215,7 @@ func (inv *Inventory) swapSlots(targetIdx int) {
 	inv.itemCounts[inv.Slots[targetIdx].ID] += inv.Slots[targetIdx].Quantity
 }
 
-func (inv *Inventory) TakeOneFromSlot(slotIdx int) bool {
+func (inv *Inventory) TakeOneFromSlot(draggedSlot *DraggedSlot, slotIdx int) bool {
 	if slotIdx < 0 || slotIdx >= len(inv.Slots) {
 		return false
 	}

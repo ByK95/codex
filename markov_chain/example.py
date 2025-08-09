@@ -14,7 +14,6 @@ class MarkovChain:
         result = [start]
         for _ in range(length - 1):
             next_states = self.model.get(result[-1])
-            print(next_states)
             if not next_states:
                 break
             result.append(random.choice(next_states))
