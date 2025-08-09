@@ -1,5 +1,8 @@
 package main
 
+/*
+#include <stdbool.h>
+*/
 import "C"
 import (
 	"codex/pkg/inventory" // module path + folder
@@ -65,21 +68,95 @@ func InventoryTakeOneFromSlot(slotIdx C.int) C.int {
     return 0
 }
 
-//export InventoryGetSlotInfo
-func InventoryGetSlotInfo(slotIdx C.int, outID *C.int, outQty *C.int, outStackable *C.int) C.int {
-    idx := int(slotIdx)
-    if idx < 0 || idx >= len(inv.Slots) || inv.Slots[idx] == nil {
-        return 0
-    }
-    slot := inv.Slots[idx]
-    *outID = C.int(slot.ID)
-    *outQty = C.int(slot.Quantity)
-    if slot.Stackable {
-        *outStackable = 1
-    } else {
-        *outStackable = 0
-    }
-    return 1
+//export InventoryGetSlotItemID
+func InventoryGetSlotItemID(slotIdx C.int) C.int {
+	if inv == nil {
+		return -1 // Invalid state
+	}
+	
+	idx := int(slotIdx)
+	if idx < 0 || idx >= len(inv.Slots) {
+		return -1 // Invalid slot index
+	}
+	
+	slot := inv.Slots[idx]
+	if slot == nil {
+		return -1 // Empty slot
+	}
+	
+	return C.int(slot.ID)
+}
+
+//export InventoryGetSlotQuantity
+func InventoryGetSlotQuantity(slotIdx C.int) C.int {
+	if inv == nil {
+		return 0
+	}
+	
+	idx := int(slotIdx)
+	if idx < 0 || idx >= len(inv.Slots) {
+		return 0
+	}
+	
+	slot := inv.Slots[idx]
+	if slot == nil {
+		return 0
+	}
+	
+	return C.int(slot.Quantity)
+}
+
+//export InventoryGetSlotStackable
+func InventoryGetSlotStackable(slotIdx C.int) C.bool {
+	if inv == nil {
+		return false
+	}
+	
+	idx := int(slotIdx)
+	if idx < 0 || idx >= len(inv.Slots) {
+		return false
+	}
+	
+	slot := inv.Slots[idx]
+	if slot == nil {
+		return false
+	}
+	
+	return C.bool(slot.Stackable)
+}
+
+//export InventoryGetSlotMaxStackSize
+func InventoryGetSlotMaxStackSize(slotIdx C.int) C.int {
+	if inv == nil {
+		return 0
+	}
+	
+	idx := int(slotIdx)
+	if idx < 0 || idx >= len(inv.Slots) {
+		return 0
+	}
+	
+	slot := inv.Slots[idx]
+	if slot == nil {
+		return 0
+	}
+	
+	return C.int(slot.MaxStackSize)
+}
+
+//export InventoryIsSlotEmpty
+func InventoryIsSlotEmpty(slotIdx C.int) C.bool {
+	if inv == nil {
+		return true
+	}
+	
+	idx := int(slotIdx)
+	if idx < 0 || idx >= len(inv.Slots) {
+		return true // Invalid slots are considered empty
+	}
+	
+	slot := inv.Slots[idx]
+	return C.bool(slot == nil || slot.Quantity == 0)
 }
 
 
