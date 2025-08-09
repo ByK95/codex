@@ -65,6 +65,19 @@ func InventoryTakeOneFromSlot(slotIdx C.int) C.int {
     return 0
 }
 
+//export InventoryGetSlotInfo
+func InventoryGetSlotInfo(slotIdx C.int, outID *C.int, outQty *C.int, outStackable *C.int) C.int {
+    idx := int(slotIdx)
+    if idx < 0 || idx >= len(inv.Slots) || inv.Slots[idx] == nil {
+        return 0
+    }
+    slot := inv.Slots[idx]
+    *outID = C.int(slot.ID)
+    *outQty = C.int(slot.Quantity)
+    *outStackable = C.int(slot.Stackable)
+    return 1
+}
+
 
 //export Increment
 func Increment() {
