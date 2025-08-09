@@ -43,7 +43,7 @@ func InventoryCountItem(id C.int) C.int {
 
 //export InventoryPickUpFromSlot
 func InventoryPickUpFromSlot(slotIdx C.int) C.int {
-    if inv.PickUpFromSlot(draggedSlot, int(slotIdx)) {
+    if inv.PickUpFromSlot(&draggedSlot, int(slotIdx)) {
         return 1
     }
     return 0
@@ -51,7 +51,7 @@ func InventoryPickUpFromSlot(slotIdx C.int) C.int {
 
 //export InventoryDropToSlot
 func InventoryDropToSlot(targetIdx C.int) C.int {
-    if inv.DropToSlot(draggedSlot, int(targetIdx)) {
+    if inv.DropToSlot(&draggedSlot, int(targetIdx)) {
         return 1
     }
     return 0
@@ -59,7 +59,7 @@ func InventoryDropToSlot(targetIdx C.int) C.int {
 
 //export InventoryTakeOneFromSlot
 func InventoryTakeOneFromSlot(slotIdx C.int) C.int {
-    if inv.TakeOneFromSlot(draggedSlot, int(slotIdx)) {
+    if inv.TakeOneFromSlot(&draggedSlot, int(slotIdx)) {
         return 1
     }
     return 0
