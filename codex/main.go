@@ -5,6 +5,8 @@ package main
 #include <stdbool.h>
 */
 import "C"
+
+import "unsafe"
 import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
@@ -259,30 +261,30 @@ func EquipmentNextEquippedItem() C.int {
 //export EquipmentReset
 func EquipmentReset() C.bool {
 	if em == nil {
-		return 0
+		return C.bool(0)
 	}
 	
 	em.Reset()
-	return 1
+	return C.bool(1)
 }
 
 //export EquipmentClearSlot
 func EquipmentClearSlot(slotType C.int) C.bool {
 	if em == nil {
-		return 0
+		return C.bool(0)
 	}
 	
-	return em.ClearSlot(slotType)
+	return C.bool(em.ClearSlot(slotType))
 }
 
 
 //export EquipmentGetSlotAvailability
 func EquipmentGetSlotAvailability(slotType C.int) C.int {
 	if em == nil {
-		return 0
+		return C.bool(0)
 	}
 	
-	return em.GetSlotAvailability(slotType)
+	return C.bool(em.GetSlotAvailability(slotType))
 }
 
 //export InitializePubSub
