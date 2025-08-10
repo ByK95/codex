@@ -278,7 +278,7 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 }
 
 func Metrics_IncInt(name *C.char) {
-	IncInt(C.GoString(name))
+	metrics.IncInt(C.GoString(name))
 }
 
 //export Metrics_AddInt
