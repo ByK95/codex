@@ -240,7 +240,7 @@ func EquipmentIsItemEquipped(slotType C.int, itemID C.int) C.bool {
 }
 
 //export EquipmentResetIterator
-func EquipmentResetIterator(index C.int) C.bool {
+func EquipmentResetIterator() C.bool {
 	if em == nil {
 		return false
 	}
@@ -274,7 +274,7 @@ func EquipmentClearSlot(slotType C.int) C.bool {
 		return false
 	}
 	
-	return em.ClearSlot(slotType)
+	return em.ClearSlot(int(slotType))
 }
 
 
@@ -284,12 +284,12 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 		return 0
 	}
 	
-	return em.GetSlotAvailability(slotType)
+	return em.GetSlotAvailability(int(slotType))
 }
 
 //export InitializePubSub
 func InitializePubSub() {
-	InitPubSub()
+	pubsub.InitPubSub()
 }
 
 //export PublishMessage
@@ -320,13 +320,10 @@ func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
 			defer C.free(unsafe.Pointer(contentC))
 			
 			callback(topicC, contentC, C.longlong(msg.ID))
-		} else {
-			fmt.Printf("Handler %d received message: [%s] %s\n", handlerIDInt, msg.Topic, msg.Content)
 		}
 	}
 	
 	listenerID := ps.Subscribe(topicStr, handler)
-	fmt.Printf("Subscribed to topic '%s' with listener ID: %d (handler ID: %d)\n", topicStr, listenerID, handlerIDInt)
 	
 	return C.longlong(listenerID)
 }
@@ -337,11 +334,9 @@ func UnsubscribeFromTopic(listenerID C.longlong) C.int {
 	success := ps.Unsubscribe(int64(listenerID))
 	
 	if success {
-		fmt.Printf("Unsubscribed listener ID: %d\n", int64(listenerID))
 		return 1
 	}
 	
-	fmt.Printf("Failed to unsubscribe listener ID: %d\n", int64(listenerID))
 	return 0
 }
 
@@ -350,7 +345,6 @@ func RegisterMessageHandler(handlerID C.longlong, callback unsafe.Pointer) {
 	// This would be used for more complex C callback scenarios
 	// For now, we'll use the simple approach in SubscribeToTopic
 	handlerIDInt := int64(handlerID)
-	fmt.Printf("Registered message handler ID: %d\n", handlerIDInt)
 }
 
 //export GetListenerCount
