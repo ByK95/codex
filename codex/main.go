@@ -10,7 +10,6 @@ import "unsafe"
 import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
-	"codex/pkg/pubsub"
 	"sync"
 )
 
@@ -22,15 +21,6 @@ var (
 var draggedSlot = inventory.DraggedSlot{Empty: true}
 var inv *inventory.Inventory
 var em *equipment.EquipmentManager
-
-// C callback function type for message handling
-type MessageHandler func(topic *C.char, content *C.char, messageID C.longlong)
-
-var (
-	messageHandlers = make(map[int64]MessageHandler)
-	handlersMu      sync.RWMutex
-)
-
 
 //export InventoryNew
 func InventoryNew(slotCount C.int) {
@@ -286,68 +276,6 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 	
 	return C.int(em.GetSlotAvailability(int(slotType)))
 }
-
-//export InitializePubSub
-func InitializePubSub() {
-	pubsub.InitPubSub()
-}
-
-//export PublishMessage
-func PublishMessage(topic *C.char, content *C.char) {
-	ps := pubsub.InitPubSub()
-	topicStr := C.GoString(topic)
-	contentStr := C.GoString(content)
-	
-	ps.Publish(topicStr, contentStr)
-}
-
-//export SubscribeToTopic
-func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
-	ps := pubsub.InitPubSub()
-	topicStr := C.GoString(topic)
-	handlerIDInt := int64(handlerID)
-	
-	// Create a handler that calls the C callback
-	handler := func(msg pubsub.Message) {
-		handlersMu.RLock()
-		callback, exists := messageHandlers[handlerIDInt]
-		handlersMu.RUnlock()
-		
-		if exists {
-			topicC := C.CString(msg.Topic)
-			contentC := C.CString(msg.Content)
-			defer C.free(unsafe.Pointer(topicC))
-			defer C.free(unsafe.Pointer(contentC))
-			
-			callback(topicC, contentC, C.longlong(msg.ID))
-		}
-	}
-	
-	listenerID := ps.Subscribe(topicStr, handler)
-	
-	return C.longlong(listenerID)
-}
-
-//export UnsubscribeFromTopic
-func UnsubscribeFromTopic(listenerID C.longlong) C.int {
-	ps := pubsub.InitPubSub()
-	success := ps.Unsubscribe(int64(listenerID))
-	
-	if success {
-		return 1
-	}
-	
-	return 0
-}
-
-//export GetListenerCount
-func GetListenerCount(topic *C.char) C.int {
-	ps := pubsub.InitPubSub()
-	topicStr := C.GoString(topic)
-	count := ps.GetListenerCount(topicStr)
-	return C.int(count)
-}
-
 
 //export Increment
 func Increment() {
