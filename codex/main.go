@@ -1,6 +1,7 @@
 package main
 
 /*
+#include <stdlib.h>
 #include <stdbool.h>
 */
 import "C"
