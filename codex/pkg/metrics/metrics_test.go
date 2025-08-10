@@ -68,3 +68,57 @@ func TestSnapshotJSON(t *testing.T) {
 	assert.EqualValues(t, true, parsed["ready"])
 	assert.EqualValues(t, "2.1.0", parsed["version"])
 }
+
+func TestClearAll(t *testing.T) {
+	ClearAll()
+	AddInt("test_int", 5)
+	AddFloat("test_float", 2.34)
+	SetBool("test_bool", true)
+	SetString("test_str", "abc")
+
+	assert.NotEmpty(t, Default.objects, "Registry should have metrics")
+
+	ClearAll()
+	assert.Empty(t, Default.objects, "Registry should be empty after ClearAll")
+}
+
+func TestClearPrefix(t *testing.T) {
+	ClearAll()
+	AddInt("foo_count", 10)
+	AddFloat("foo_time", 1.23)
+	AddInt("bar_count", 20)
+
+	ClearPrefix("foo_")
+
+	_, fooExists := Default.objects["foo_count"]
+	_, fooTimeExists := Default.objects["foo_time"]
+	_, barExists := Default.objects["bar_count"]
+
+	assert.False(t, fooExists, "foo_count should be cleared")
+	assert.False(t, fooTimeExists, "foo_time should be cleared")
+	assert.True(t, barExists, "bar_count should remain")
+}
+
+func TestLoadFromJSON(t *testing.T) {
+	ClearAll()
+	jsonData := `{
+		"int_metric": 42,
+		"float_metric": 3.14159,
+		"bool_metric": true,
+		"string_metric": "hello"
+	}`
+
+	err := LoadFromJSON(jsonData)
+	assert.NoError(t, err, "LoadFromJSON should not return error")
+
+	assert.Equal(t, int64(42), GetInt("int_metric"))
+	assert.InDelta(t, 3.14, GetFloat("float_metric"), 0.001)
+	assert.Equal(t, true, GetBool("bool_metric"))
+	assert.Equal(t, "hello", GetString("string_metric"))
+}
+
+func TestLoadFromJSONInvalid(t *testing.T) {
+	ClearAll()
+	err := LoadFromJSON(`invalid json`)
+	assert.Error(t, err, "Invalid JSON should return error")
+}

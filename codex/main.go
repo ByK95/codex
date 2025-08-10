@@ -339,6 +339,24 @@ func Metrics_FreeCString(str *C.char) {
 	C.free(unsafe.Pointer(str))
 }
 
+//export Metrics_ClearAll
+func Metrics_ClearAll() {
+	metrics.ClearAll()
+}
+
+//export Metrics_ClearPrefix
+func Metrics_ClearPrefix(prefix *C.char) {
+	metrics.ClearPrefix(C.GoString(prefix))
+}
+
+//export Metrics_LoadFromJSON
+func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
+	if err := metrics.LoadFromJSON(C.GoString(jsonStr)); err != nil {
+		return 1 // error
+	}
+	return 0 // success
+}
+
 //export Increment
 func Increment() {
     mu.Lock()

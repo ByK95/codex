@@ -3,6 +3,8 @@ package metrics
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"strings"
 	"sync"
 )
 
@@ -41,13 +43,32 @@ type FloatCounter struct {
 func (c *FloatCounter) Add(delta float64) {
 	c.mu.Lock()
 	c.v += delta
+	c.v = math.Round(c.v*100) / 100
 	c.mu.Unlock()
 }
 
 func (c *FloatCounter) Get() float64 {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.v
+	return math.Round(c.v*100) / 100
+}
+
+// ClearAll removes all metrics
+func (r *Registry) ClearAll() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.objects = make(map[string]Metric)
+}
+
+// ClearPrefix removes metrics whose names start with the given prefix
+func (r *Registry) ClearPrefix(prefix string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for name := range r.objects {
+		if strings.HasPrefix(name, prefix) {
+			delete(r.objects, name)
+		}
+	}
 }
 
 // BoolGauge
@@ -202,6 +223,9 @@ func GetBool(name string) bool            { return Default.getOrCreateBool(name)
 
 func SetString(name, v string)            { Default.getOrCreateString(name).Set(v) }
 func GetString(name string) string        { return Default.getOrCreateString(name).Get() }
+func ClearAll()                 { Default.ClearAll() }
+func ClearPrefix(prefix string)  { Default.ClearPrefix(prefix) }
+func LoadFromJSON(s string) error { return Default.LoadFromJSON(s) }
 
 // ---- Snapshot JSON ----
 
@@ -231,6 +255,38 @@ func (r *Registry) SnapshotJSON() string {
 	}
 	return string(b)
 }
+
+// LoadFromJSON replaces or sets metrics from a JSON string
+func (r *Registry) LoadFromJSON(jsonStr string) error {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		return err
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for name, val := range data {
+		switch v := val.(type) {
+		case float64:
+			// Decide if it's actually an int by checking whole number
+			if v == float64(int64(v)) {
+				r.objects[name] = &IntCounter{v: int64(v)}
+			} else {
+				r.objects[name] = &FloatCounter{v: math.Round(v*100) / 100}
+			}
+		case bool:
+			r.objects[name] = &BoolGauge{v: v}
+		case string:
+			r.objects[name] = &StringGauge{v: v}
+		default:
+			// Skip unsupported type
+		}
+	}
+
+	return nil
+}
+
 
 func SnapshotJSON() string {
 	return Default.SnapshotJSON()
