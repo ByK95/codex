@@ -6,7 +6,6 @@ package main
 */
 import "C"
 
-import "unsafe"
 import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
