@@ -35,7 +35,7 @@ var (
 )
 
 // Initialize the pubsub system
-func initPubSub() *PubSub {
+func InitPubSub() *PubSub {
 	once.Do(func() {
 		pubsub = &PubSub{
 			listeners: make(map[string][]*Listener),

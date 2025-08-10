@@ -242,11 +242,11 @@ func EquipmentIsItemEquipped(slotType C.int, itemID C.int) C.bool {
 //export EquipmentResetIterator
 func EquipmentResetIterator(index C.int) C.bool {
 	if em == nil {
-		return 0
+		return C.bool(0)
 	}
 	
 	em.ResetIterator()
-	return 1
+	return C.bool(1)
 }
 
 //export EquipmentNextEquippedItem
@@ -255,7 +255,7 @@ func EquipmentNextEquippedItem() C.int {
 		return 0
 	}
 	
-	return em.NextEquippedItem()
+	return C.int(em.NextEquippedItem())
 }
 
 //export EquipmentReset
@@ -279,7 +279,7 @@ func EquipmentClearSlot(slotType C.int) C.bool {
 
 
 //export EquipmentGetSlotAvailability
-func EquipmentGetSlotAvailability(slotType C.int) C.int {
+func EquipmentGetSlotAvailability(slotType C.int) C.bool {
 	if em == nil {
 		return C.bool(0)
 	}
@@ -289,12 +289,12 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 
 //export InitializePubSub
 func InitializePubSub() {
-	initPubSub()
+	InitPubSub()
 }
 
 //export PublishMessage
 func PublishMessage(topic *C.char, content *C.char) {
-	ps := initPubSub()
+	ps := InitPubSub()
 	topicStr := C.GoString(topic)
 	contentStr := C.GoString(content)
 	
@@ -303,7 +303,7 @@ func PublishMessage(topic *C.char, content *C.char) {
 
 //export SubscribeToTopic
 func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
-	ps := initPubSub()
+	ps := InitPubSub()
 	topicStr := C.GoString(topic)
 	handlerIDInt := int64(handlerID)
 	
@@ -333,7 +333,7 @@ func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
 
 //export UnsubscribeFromTopic
 func UnsubscribeFromTopic(listenerID C.longlong) C.int {
-	ps := initPubSub()
+	ps := InitPubSub()
 	success := ps.Unsubscribe(int64(listenerID))
 	
 	if success {
@@ -355,7 +355,7 @@ func RegisterMessageHandler(handlerID C.longlong, callback unsafe.Pointer) {
 
 //export GetListenerCount
 func GetListenerCount(topic *C.char) C.int {
-	ps := initPubSub()
+	ps := InitPubSub()
 	topicStr := C.GoString(topic)
 	count := ps.GetListenerCount(topicStr)
 	return C.int(count)
