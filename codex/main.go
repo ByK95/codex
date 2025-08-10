@@ -5,7 +5,9 @@ package main
 */
 import "C"
 import (
-	"codex/pkg/inventory" // module path + folder
+	"codex/pkg/inventory"
+	"codex/pkg/equipment"
+	"codex/pkg/pubsub"
 	"sync"
 )
 
@@ -17,6 +19,15 @@ var (
 var draggedSlot = inventory.DraggedSlot{Empty: true}
 var inv *inventory.Inventory
 var em *equipment.EquipmentManager
+
+// C callback function type for message handling
+type MessageHandler func(topic *C.char, content *C.char, messageID C.longlong)
+
+var (
+	messageHandlers = make(map[int64]MessageHandler)
+	handlersMu      sync.RWMutex
+)
+
 
 //export InventoryNew
 func InventoryNew(slotCount C.int) {
@@ -271,6 +282,80 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 	}
 	
 	return em.GetSlotAvailability(slotType)
+}
+
+//export InitializePubSub
+func InitializePubSub() {
+	initPubSub()
+}
+
+//export PublishMessage
+func PublishMessage(topic *C.char, content *C.char) {
+	ps := initPubSub()
+	topicStr := C.GoString(topic)
+	contentStr := C.GoString(content)
+	
+	ps.Publish(topicStr, contentStr)
+}
+
+//export SubscribeToTopic
+func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
+	ps := initPubSub()
+	topicStr := C.GoString(topic)
+	handlerIDInt := int64(handlerID)
+	
+	// Create a handler that calls the C callback
+	handler := func(msg Message) {
+		handlersMu.RLock()
+		callback, exists := messageHandlers[handlerIDInt]
+		handlersMu.RUnlock()
+		
+		if exists {
+			topicC := C.CString(msg.Topic)
+			contentC := C.CString(msg.Content)
+			defer C.free(unsafe.Pointer(topicC))
+			defer C.free(unsafe.Pointer(contentC))
+			
+			callback(topicC, contentC, C.longlong(msg.ID))
+		} else {
+			fmt.Printf("Handler %d received message: [%s] %s\n", handlerIDInt, msg.Topic, msg.Content)
+		}
+	}
+	
+	listenerID := ps.Subscribe(topicStr, handler)
+	fmt.Printf("Subscribed to topic '%s' with listener ID: %d (handler ID: %d)\n", topicStr, listenerID, handlerIDInt)
+	
+	return C.longlong(listenerID)
+}
+
+//export UnsubscribeFromTopic
+func UnsubscribeFromTopic(listenerID C.longlong) C.int {
+	ps := initPubSub()
+	success := ps.Unsubscribe(int64(listenerID))
+	
+	if success {
+		fmt.Printf("Unsubscribed listener ID: %d\n", int64(listenerID))
+		return 1
+	}
+	
+	fmt.Printf("Failed to unsubscribe listener ID: %d\n", int64(listenerID))
+	return 0
+}
+
+//export RegisterMessageHandler
+func RegisterMessageHandler(handlerID C.longlong, callback unsafe.Pointer) {
+	// This would be used for more complex C callback scenarios
+	// For now, we'll use the simple approach in SubscribeToTopic
+	handlerIDInt := int64(handlerID)
+	fmt.Printf("Registered message handler ID: %d\n", handlerIDInt)
+}
+
+//export GetListenerCount
+func GetListenerCount(topic *C.char) C.int {
+	ps := initPubSub()
+	topicStr := C.GoString(topic)
+	count := ps.GetListenerCount(topicStr)
+	return C.int(count)
 }
 
 
