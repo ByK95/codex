@@ -5,7 +5,7 @@ package main
 #include <stdbool.h>
 */
 import "C"
-
+import "unsafe"
 import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
@@ -332,6 +332,11 @@ func Metrics_GetString(name *C.char) *C.char {
 func Metrics_SnapshotJSON() *C.char {
 	s := metrics.SnapshotJSON()
 	return C.CString(s)
+}
+
+//export Metrics_FreeCString
+func Metrics_FreeCString(str *C.char) {
+	C.free(unsafe.Pointer(str))
 }
 
 //export Increment
