@@ -274,7 +274,7 @@ func EquipmentClearSlot(slotType C.int) C.bool {
 		return false
 	}
 	
-	return em.ClearSlot(int(slotType))
+	return C.bool(em.ClearSlot(int(slotType)))
 }
 
 
@@ -284,7 +284,7 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 		return 0
 	}
 	
-	return em.GetSlotAvailability(int(slotType))
+	return C.bool(em.GetSlotAvailability(int(slotType)))
 }
 
 //export InitializePubSub
@@ -294,7 +294,7 @@ func InitializePubSub() {
 
 //export PublishMessage
 func PublishMessage(topic *C.char, content *C.char) {
-	ps := InitPubSub()
+	ps := pubsub.InitPubSub()
 	topicStr := C.GoString(topic)
 	contentStr := C.GoString(content)
 	
@@ -303,12 +303,12 @@ func PublishMessage(topic *C.char, content *C.char) {
 
 //export SubscribeToTopic
 func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
-	ps := InitPubSub()
+	ps := pubsub.InitPubSub()
 	topicStr := C.GoString(topic)
 	handlerIDInt := int64(handlerID)
 	
 	// Create a handler that calls the C callback
-	handler := func(msg Message) {
+	handler := func(msg pubsub.Message) {
 		handlersMu.RLock()
 		callback, exists := messageHandlers[handlerIDInt]
 		handlersMu.RUnlock()
@@ -330,7 +330,7 @@ func SubscribeToTopic(topic *C.char, handlerID C.longlong) C.longlong {
 
 //export UnsubscribeFromTopic
 func UnsubscribeFromTopic(listenerID C.longlong) C.int {
-	ps := InitPubSub()
+	ps := pubsub.InitPubSub()
 	success := ps.Unsubscribe(int64(listenerID))
 	
 	if success {
@@ -340,16 +340,9 @@ func UnsubscribeFromTopic(listenerID C.longlong) C.int {
 	return 0
 }
 
-//export RegisterMessageHandler
-func RegisterMessageHandler(handlerID C.longlong, callback unsafe.Pointer) {
-	// This would be used for more complex C callback scenarios
-	// For now, we'll use the simple approach in SubscribeToTopic
-	handlerIDInt := int64(handlerID)
-}
-
 //export GetListenerCount
 func GetListenerCount(topic *C.char) C.int {
-	ps := InitPubSub()
+	ps := pubsub.InitPubSub()
 	topicStr := C.GoString(topic)
 	count := ps.GetListenerCount(topicStr)
 	return C.int(count)
