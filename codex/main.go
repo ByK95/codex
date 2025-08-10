@@ -242,11 +242,11 @@ func EquipmentIsItemEquipped(slotType C.int, itemID C.int) C.bool {
 //export EquipmentResetIterator
 func EquipmentResetIterator(index C.int) C.bool {
 	if em == nil {
-		return C.bool(0)
+		return false
 	}
 	
 	em.ResetIterator()
-	return C.bool(1)
+	return true
 }
 
 //export EquipmentNextEquippedItem
@@ -261,30 +261,30 @@ func EquipmentNextEquippedItem() C.int {
 //export EquipmentReset
 func EquipmentReset() C.bool {
 	if em == nil {
-		return C.bool(0)
+		return false
 	}
 	
 	em.Reset()
-	return C.bool(1)
+	return true
 }
 
 //export EquipmentClearSlot
 func EquipmentClearSlot(slotType C.int) C.bool {
 	if em == nil {
-		return C.bool(0)
+		return false
 	}
 	
-	return C.bool(em.ClearSlot(slotType))
+	return em.ClearSlot(slotType)
 }
 
 
 //export EquipmentGetSlotAvailability
-func EquipmentGetSlotAvailability(slotType C.int) C.bool {
+func EquipmentGetSlotAvailability(slotType C.int) C.int {
 	if em == nil {
-		return C.bool(0)
+		return 0
 	}
 	
-	return C.bool(em.GetSlotAvailability(slotType))
+	return em.GetSlotAvailability(slotType)
 }
 
 //export InitializePubSub
