@@ -284,7 +284,7 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 		return 0
 	}
 	
-	return C.bool(em.GetSlotAvailability(int(slotType)))
+	return C.int(em.GetSlotAvailability(int(slotType)))
 }
 
 //export InitializePubSub
