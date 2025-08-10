@@ -275,7 +275,7 @@ func EquipmentClearSlot(slotType C.int) C.bool {
 }
 
 
-//export EquipmentClearSlot
+//export EquipmentGetSlotAvailability
 func EquipmentGetSlotAvailability(slotType C.int) C.int {
 	if em == nil {
 		return 0
