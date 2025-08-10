@@ -16,6 +16,7 @@ var (
 
 var draggedSlot = inventory.DraggedSlot{Empty: true}
 var inv *inventory.Inventory
+var em *equipment.EquipmentManager
 
 //export InventoryNew
 func InventoryNew(slotCount C.int) {
@@ -157,6 +158,119 @@ func InventoryIsSlotEmpty(slotIdx C.int) C.bool {
 	
 	slot := inv.Slots[idx]
 	return C.bool(slot == nil || slot.Quantity == 0)
+}
+
+//export EquipmentNew
+func EquipmentNew() {
+	em = equipment.NewEquipmentManager()
+}
+
+//export EquipmentDefineSlot
+func EquipmentDefineSlot(slotType C.int, maxSlots C.int) C.int {
+	if em == nil {
+		return 0
+	}
+	if em.DefineSlot(int(slotType), int(maxSlots)) {
+		return 1
+	}
+	return 0
+}
+
+//export EquipmentRemoveSlotDefinition
+func EquipmentRemoveSlotDefinition(slotType C.int) C.int {
+	if em == nil {
+		return 0
+	}
+	if em.RemoveSlotDefinition(int(slotType)) {
+		return 1
+	}
+	return 0
+}
+
+//export EquipmentEquipItem
+func EquipmentEquipItem(slotType C.int, itemID C.int) C.int {
+	if em == nil {
+		return 0
+	}
+	if em.EquipItem(int(slotType), int(itemID)) {
+		return 1
+	}
+	return 0
+}
+
+//export EquipmentUnequipItem
+func EquipmentUnequipItem(slotType C.int, itemID C.int) C.int {
+	if em == nil {
+		return 0
+	}
+	if em.UnequipItem(int(slotType), int(itemID)) {
+		return 1
+	}
+	return 0
+}
+
+//export EquipmentIsSlotFull
+func EquipmentIsSlotFull(slotType C.int) C.bool {
+	if em == nil {
+		return false
+	}
+	return C.bool(em.IsSlotFull(int(slotType)))
+}
+
+//export EquipmentIsItemEquipped
+func EquipmentIsItemEquipped(slotType C.int, itemID C.int) C.bool {
+	if em == nil {
+		return false
+	}
+	return C.bool(em.IsItemEquipped(int(slotType), int(itemID)))
+}
+
+//export EquipmentResetIterator
+func EquipmentResetIterator(index C.int) C.bool {
+	if em == nil {
+		return 0
+	}
+	
+	em.ResetIterator()
+	return 1
+}
+
+//export EquipmentNextEquippedItem
+func EquipmentNextEquippedItem() C.int {
+	if em == nil {
+		return 0
+	}
+	
+	return em.NextEquippedItem()
+}
+
+//export EquipmentReset
+func EquipmentReset() C.bool {
+	if em == nil {
+		return 0
+	}
+	
+	em.Reset()
+	return 1
+}
+
+//export EquipmentClearSlot
+func EquipmentClearSlot(slotType C.int) C.bool {
+	if em == nil {
+		return 0
+	}
+	
+	return em.ClearSlot(slotType)
+}
+
+
+//export EquipmentClearSlot
+func EquipmentGetSlotAvailability(slotType C.int) C.int {
+	if em == nil {
+		return 0
+	}
+	
+	return em.GetSlotAvailability(slotType)
 }
 
 
