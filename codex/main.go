@@ -9,6 +9,7 @@ import "C"
 import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
+	"codex/pkg/metrics"
 	"sync"
 )
 
@@ -282,34 +283,34 @@ func Metrics_IncInt(name *C.char) {
 
 //export Metrics_AddInt
 func Metrics_AddInt(name *C.char, val C.longlong) {
-	AddInt(C.GoString(name), int64(val))
+	metrics.AddInt(C.GoString(name), int64(val))
 }
 
 //export Metrics_GetInt
 func Metrics_GetInt(name *C.char) C.longlong {
-	return C.longlong(GetInt(C.GoString(name)))
+	return C.longlong(metrics.GetInt(C.GoString(name)))
 }
 
 // Float metrics
 //export Metrics_AddFloat
 func Metrics_AddFloat(name *C.char, val C.double) {
-	AddFloat(C.GoString(name), float64(val))
+	metrics.AddFloat(C.GoString(name), float64(val))
 }
 
 //export Metrics_GetFloat
 func Metrics_GetFloat(name *C.char) C.double {
-	return C.double(GetFloat(C.GoString(name)))
+	return C.double(metrics.GetFloat(C.GoString(name)))
 }
 
 // Bool metrics
 //export Metrics_SetBool
 func Metrics_SetBool(name *C.char, val C.int) {
-	SetBool(C.GoString(name), val != 0)
+	metrics.SetBool(C.GoString(name), val != 0)
 }
 
 //export Metrics_GetBool
 func Metrics_GetBool(name *C.char) C.int {
-	if GetBool(C.GoString(name)) {
+	if metrics.GetBool(C.GoString(name)) {
 		return 1
 	}
 	return 0
@@ -318,18 +319,18 @@ func Metrics_GetBool(name *C.char) C.int {
 // String metrics
 //export Metrics_SetString
 func Metrics_SetString(name *C.char, val *C.char) {
-	SetString(C.GoString(name), C.GoString(val))
+	metrics.SetString(C.GoString(name), C.GoString(val))
 }
 
 //export Metrics_GetString
 func Metrics_GetString(name *C.char) *C.char {
-	s := GetString(C.GoString(name))
+	s := metrics.GetString(C.GoString(name))
 	return C.CString(s)
 }
 
 //export Metrics_SnapshotJSON
 func Metrics_SnapshotJSON() *C.char {
-	s := SnapshotJSON()
+	s := metrics.SnapshotJSON()
 	return C.CString(s)
 }
 
