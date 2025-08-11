@@ -377,9 +377,18 @@ func Loot_ResetPity() {
 //export RollLoot
 func RollLoot(itemsPtr *C.LootRow, length C.int) *C.Loot {
     // Convert C array to Go slice
-    items := (*[1 << 28]C.LootRow)(unsafe.Pointer(itemsPtr))[:length:length]
+    cItems := (*[1 << 28]C.LootRow)(unsafe.Pointer(itemsPtr))[:length:length]
 
-    results := loot.RollLoot(items)
+	goItems := make([]loot.LootRow, len(cItems))
+	for i, item := range items{
+		goItems[i] = loot.LootRow{
+            id:    int(cItem.id),
+            chance: float32(cItem.chance),
+            pity:  int(cItem.pity),
+        }
+	}
+
+    results := loot.RollLoot(goItems)
 
     // Allocate array for returning C.Loot items (caller must free)
     out := C.malloc(C.size_t(len(results)) * C.size_t(unsafe.Sizeof(C.Loot{})))
