@@ -5,11 +5,11 @@ package main
 #include <stdbool.h>
 */
 import "C"
-
 import "unsafe"
 import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
+	"codex/pkg/metrics"
 	"sync"
 )
 
@@ -275,6 +275,86 @@ func EquipmentGetSlotAvailability(slotType C.int) C.int {
 	}
 	
 	return C.int(em.GetSlotAvailability(int(slotType)))
+}
+
+func Metrics_IncInt(name *C.char) {
+	metrics.IncInt(C.GoString(name))
+}
+
+//export Metrics_AddInt
+func Metrics_AddInt(name *C.char, val C.longlong) {
+	metrics.AddInt(C.GoString(name), int64(val))
+}
+
+//export Metrics_GetInt
+func Metrics_GetInt(name *C.char) C.longlong {
+	return C.longlong(metrics.GetInt(C.GoString(name)))
+}
+
+// Float metrics
+//export Metrics_AddFloat
+func Metrics_AddFloat(name *C.char, val C.double) {
+	metrics.AddFloat(C.GoString(name), float64(val))
+}
+
+//export Metrics_GetFloat
+func Metrics_GetFloat(name *C.char) C.double {
+	return C.double(metrics.GetFloat(C.GoString(name)))
+}
+
+// Bool metrics
+//export Metrics_SetBool
+func Metrics_SetBool(name *C.char, val C.int) {
+	metrics.SetBool(C.GoString(name), val != 0)
+}
+
+//export Metrics_GetBool
+func Metrics_GetBool(name *C.char) C.int {
+	if metrics.GetBool(C.GoString(name)) {
+		return 1
+	}
+	return 0
+}
+
+// String metrics
+//export Metrics_SetString
+func Metrics_SetString(name *C.char, val *C.char) {
+	metrics.SetString(C.GoString(name), C.GoString(val))
+}
+
+//export Metrics_GetString
+func Metrics_GetString(name *C.char) *C.char {
+	s := metrics.GetString(C.GoString(name))
+	return C.CString(s)
+}
+
+//export Metrics_SnapshotJSON
+func Metrics_SnapshotJSON() *C.char {
+	s := metrics.SnapshotJSON()
+	return C.CString(s)
+}
+
+//export Metrics_FreeCString
+func Metrics_FreeCString(str *C.char) {
+	C.free(unsafe.Pointer(str))
+}
+
+//export Metrics_ClearAll
+func Metrics_ClearAll() {
+	metrics.ClearAll()
+}
+
+//export Metrics_ClearPrefix
+func Metrics_ClearPrefix(prefix *C.char) {
+	metrics.ClearPrefix(C.GoString(prefix))
+}
+
+//export Metrics_LoadFromJSON
+func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
+	if err := metrics.LoadFromJSON(C.GoString(jsonStr)); err != nil {
+		return 1 // error
+	}
+	return 0 // success
 }
 
 //export Increment
