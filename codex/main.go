@@ -11,7 +11,6 @@ import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
 	"codex/pkg/metrics"
-	"codex/pkg/loot"
 	"sync"
 )
 
