@@ -7,7 +7,13 @@ package main
 typedef struct {
     int itemID;
     int count;
-} ItemLoot;
+} Loot;
+
+typedef struct {
+    int id;
+    float chance;
+	int pity; 
+} LootRow;
 */
 import "C"
 import "unsafe"
@@ -368,9 +374,24 @@ func Loot_ResetPity() {
 	loot.ResetPity()
 }
 
-//export Loot_RollLoot
-func Loot_RollLoot(items []loot.LootRow) {
-    return loot.RollLoot(items)
+//export RollLoot
+func RollLoot(itemsPtr *C.LootRow, length C.int) *C.Loot {
+    // Convert C array to Go slice
+    items := (*[1 << 28]C.LootRow)(unsafe.Pointer(itemsPtr))[:length:length]
+
+    results := loot.RollLoot(items)
+
+    // Allocate array for returning C.Loot items (caller must free)
+    out := C.malloc(C.size_t(len(results)) * C.size_t(unsafe.Sizeof(C.Loot{})))
+    lootArray := (*[1 << 28]C.Loot)(out)[:len(results):len(results)]
+
+    i := 0
+    for id, count := range results {
+        lootArray[i] = C.Loot{itemID: C.int(id), count: C.int(count)}
+        i++
+    }
+
+    return (*C.Loot)(out)
 }
 
 //export Increment
