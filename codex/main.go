@@ -3,6 +3,11 @@ package main
 /*
 #include <stdlib.h>
 #include <stdbool.h>
+
+typedef struct {
+    int itemID;
+    int count;
+} ItemLoot;
 */
 import "C"
 import "unsafe"
@@ -10,6 +15,7 @@ import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
 	"codex/pkg/metrics"
+	"codex/pkg/loot"
 	"sync"
 )
 
@@ -355,6 +361,16 @@ func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
 		return 1 // error
 	}
 	return 0 // success
+}
+
+//export Loot_ResetPity
+func Loot_ResetPity() {
+	loot.ResetPity()
+}
+
+//export Loot_RollLoot
+func Loot_RollLoot(items []loot.LootRow) {
+    return loot.RollLoot(items)
 }
 
 //export Increment
