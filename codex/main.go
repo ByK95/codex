@@ -382,9 +382,9 @@ func RollLoot(itemsPtr *C.LootRow, length C.int) *C.Loot {
 	goItems := make([]loot.LootRow, len(cItems))
 	for i, item := range cItems{
 		goItems[i] = loot.LootRow{
-            id:    int(item.id),
-            chance: float32(item.chance),
-            pity:  int(item.pity),
+            Id:    int(item.id),
+            Chance: float32(item.chance),
+            Pity:  int(item.pity),
         }
 	}
 
