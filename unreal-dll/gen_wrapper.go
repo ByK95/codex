@@ -309,22 +309,13 @@ func markStringFunctions(fns []*Func) {
 			fn.BpParams = strings.ReplaceAll(fn.Params, matcher, "const FString&")
 			fn.BpParamNames = extractFStringVarNames(fn.BpParams)
 			
-			var updatedParams []string
-			paramMap := make(map[string]string, len(fn.ParamNames))
-			
-			for _, p := range fn.ParamNames {
-				paramMap[p] = p
+			for i, p := range fn.ParamNames {
+				for _, bpName := range fn.BpParamNames {
+					if p == bpName {
+						fn.ParamNames[i] = fmt.Sprintf("(char*)%sUtf8.Get()", bpName)
+					}
+				}
 			}
-			
-			for _, key := range fn.BpParamNames {
-				paramMap[key] = fmt.Sprintf("(char*)%sUtf8.Get()", key)
-			}
-			
-
-			for _, val := range paramMap {
-				updatedParams = append(updatedParams, val)
-			}
-			fn.ParamNames = updatedParams
 		}
 		// b, err := json.MarshalIndent(fn, "", "  ")
 		// if err != nil {
