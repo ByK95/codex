@@ -3,6 +3,7 @@ package main
 /*
 #include <stdlib.h>
 #include <stdbool.h>
+
 */
 import "C"
 import "unsafe"
@@ -10,6 +11,7 @@ import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
 	"codex/pkg/metrics"
+	"codex/pkg/loot"
 	"sync"
 )
 
@@ -356,6 +358,8 @@ func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
 	}
 	return 0 // success
 }
+
+// Loot functions are not added reason being in order to pass the list into unreal and back needs 3 different conversations which doesn't worth it imo also taken a look into flatbuffers which offer nice conversations third will be necessary for blueprints again so given up atm but leaving the logic here
 
 //export Increment
 func Increment() {
