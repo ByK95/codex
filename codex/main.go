@@ -380,7 +380,7 @@ func RollLoot(itemsPtr *C.LootRow, length C.int) *C.Loot {
     cItems := (*[1 << 28]C.LootRow)(unsafe.Pointer(itemsPtr))[:length:length]
 
 	goItems := make([]loot.LootRow, len(cItems))
-	for i, item := range items{
+	for i, item := range cItems{
 		goItems[i] = loot.LootRow{
             id:    int(item.id),
             chance: float32(item.chance),
