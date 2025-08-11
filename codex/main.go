@@ -4,16 +4,6 @@ package main
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct {
-    int itemID;
-    int count;
-} Loot;
-
-typedef struct {
-    int id;
-    float chance;
-	int pity; 
-} LootRow;
 */
 import "C"
 import "unsafe"
@@ -369,39 +359,7 @@ func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
 	return 0 // success
 }
 
-//export Loot_ResetPity
-func Loot_ResetPity() {
-	loot.ResetPity()
-}
-
-//export RollLoot
-func RollLoot(itemsPtr *C.LootRow, length C.int) *C.Loot {
-    // Convert C array to Go slice
-    cItems := (*[1 << 28]C.LootRow)(unsafe.Pointer(itemsPtr))[:length:length]
-
-	goItems := make([]loot.LootRow, len(cItems))
-	for i, item := range cItems{
-		goItems[i] = loot.LootRow{
-            ID:    int32(item.id),
-            Chance: float32(item.chance),
-            Pity:  int32(item.pity),
-        }
-	}
-
-    results := loot.RollLoot(goItems)
-
-    // Allocate array for returning C.Loot items (caller must free)
-    out := C.malloc(C.size_t(len(results)) * C.size_t(unsafe.Sizeof(C.Loot{})))
-    lootArray := (*[1 << 28]C.Loot)(out)[:len(results):len(results)]
-
-    i := 0
-    for id, count := range results {
-        lootArray[i] = C.Loot{itemID: C.int(id), count: C.int(count)}
-        i++
-    }
-
-    return (*C.Loot)(out)
-}
+// Loot functions are not added reason being in order to pass the list into unreal and back needs 3 different conversations which doesn't worth it imo also taken a look into flatbuffers which offer nice conversations third will be necessary for blueprints again so given up atm but leaving the logic here
 
 //export Increment
 func Increment() {

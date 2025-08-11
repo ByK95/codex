@@ -337,6 +337,9 @@ func markStringFunctions(fns []*Func) {
 
 func main() {
 	filePath := "./codex.h"
+	destinationPath := "E:/Unreal Projects/OrbitSurvivors/Source/OrbitSurvivors"
+	destinationPublicPath := destinationPath + "/Public/"
+	destinationPrivatePath := destinationPath + "/Private/"
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -381,13 +384,13 @@ func main() {
 		Funcs:    funcs,
 	}
 
-	headerFile, err := os.Create("CodexDLLBPLibrary.h")
+	headerFile, err := os.Create(destinationPublicPath + "CodexDLLBPLibrary.h")
 	if err != nil {
 		panic(err)
 	}
 	defer headerFile.Close()
 
-	cppFile, err := os.Create("CodexDLLBPLibrary.cpp")
+	cppFile, err := os.Create(destinationPrivatePath + "CodexDLLBPLibrary.cpp")
 	if err != nil {
 		panic(err)
 	}
