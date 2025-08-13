@@ -373,7 +373,7 @@ func TimedZoneThreat(currentID C.int, amount C.float) C.float {
 
 //export Zone_AdvanceMap
 func Zone_AdvanceMap() {
-	GetManager().AdvanceMap()
+	zone.GetManager().AdvanceMap()
 }
 
 //export GetZoneThreat
