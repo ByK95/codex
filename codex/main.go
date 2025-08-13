@@ -361,17 +361,17 @@ func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
 
 // Loot functions are not added reason being in order to pass the list into unreal and back needs 3 different conversations which doesn't worth it imo also taken a look into flatbuffers which offer nice conversations third will be necessary for blueprints again so given up atm but leaving the logic here
 
-//export IncreaseThreat
+//export IncreaseZoneThreat
 func IncreaseZoneThreat(zoneID C.int, amount C.float) C.float {
 	return C.float(zone.GetManager().IncreaseThreat(int32(zoneID), float32(amount)))
 }
 
-//export TimedThreat
+//export TimedZoneThreat
 func TimedZoneThreat(currentID C.int, amount C.float) C.float {
 	return C.float(zone.GetManager().TimedThreat(int32(currentID), float32(amount)))
 }
 
-//export AdvanceMap
+//export Zone_AdvanceMap
 func Zone_AdvanceMap() {
 	GetManager().AdvanceMap()
 }
