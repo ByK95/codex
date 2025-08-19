@@ -496,11 +496,8 @@ func ZoneConfig_GetRandomNPCType(zoneID *C.char) *C.char {
 
 //export ZoneConfig_Reload
 func ZoneConfig_Reload() C.int {
-	err := zoneconfig.GetManager("zones.json").Load()
-	if err != nil {
-		return 0
-	}
-	return 1
+	res := zoneconfig.GetManager("zones.json").Load()
+	return C.int(res)
 }
 
 func main() {}

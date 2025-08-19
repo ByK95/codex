@@ -58,9 +58,28 @@ func TestZoneConfigManager_LoadAndGetters(t *testing.T) {
 	assert.Equal(t, "", npc)
 }
 
+
+func TestZoneConfigManager_LoadZone(t *testing.T) {
+	jsonContent := `
+	[
+		{
+			"zone_id": "1",
+			"npcs": ["meteor"],
+			"spawn_chance": 0.0017,
+			"max_count": 10
+		}
+	]
+	`
+	tmpFile := createTestFile(t, jsonContent)
+	manager := GetManager(tmpFile)
+	manager.Load()
+
+	assert.Equal(t, int32(10), manager.GetMaxNPC("1"))
+}
+
 func TestZoneConfigManager_LoadInvalidFile(t *testing.T) {
 	tmpFile := createTestFile(t, `{ invalid json }`)
 	manager := &ZoneConfigManager{path: tmpFile}
 	err := manager.Load()
-	assert.Error(t, err)
+	assert.Equal(t, err, int32(-2))
 }

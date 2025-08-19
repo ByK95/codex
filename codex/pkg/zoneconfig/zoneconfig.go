@@ -34,24 +34,24 @@ func GetManager(path string) *ZoneConfigManager {
 	return manager
 }
 
-func (m *ZoneConfigManager) Load() error {
+func (m *ZoneConfigManager) Load() int32 {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	data, err := os.ReadFile(m.path)
 	if err != nil {
-		return err
+		return int32(-1)
 	}
 
 	var zones []*Zone
 	if err := json.Unmarshal(data, &zones); err != nil {
-		return err
+		return int32(-2)
 	}
 
 	m.zones = make(map[string]*Zone)
 	for _, z := range zones {
 		m.zones[z.ZoneID] = z
 	}
-	return nil
+	return int32(1)
 }
 
 func (m *ZoneConfigManager) GetMaxNPC(zoneID string) int32 {

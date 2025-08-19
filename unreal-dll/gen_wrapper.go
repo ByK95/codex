@@ -164,6 +164,7 @@ void U{{ .Filename }}::UnloadDLL()
 // Map C types to Unreal/C++ types
 func mapCTypeToUnreal(cType string) string {
 	cType = strings.ReplaceAll(cType, "long long int", "int64")
+	cType = strings.ReplaceAll(cType, "_Bool", "bool")
 	switch cType {
 	case "_Bool":
 		return "bool"
