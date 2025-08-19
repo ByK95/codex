@@ -501,10 +501,7 @@ func ZoneConfig_GetRandomNPCType(path *C.char, zoneID *C.char) *C.char {
 func ZoneConfig_Reload(path *C.char) C.int {
 	p := C.GoString(path)
 	err := zoneconfig.GetManager(p).Load()
-	if err != nil {
-		return C.int(err)
-	}
-	return 1
+	return C.int(err)
 }
 
 func main() {}
