@@ -11,8 +11,9 @@ import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
 	"codex/pkg/metrics"
-	"codex/pkg/zone"
+	"codex/pkg/threat"
 	"codex/pkg/store"
+	"codex/pkg/zoneconfig"
 	"sync"
 )
 
