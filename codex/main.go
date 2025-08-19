@@ -395,34 +395,26 @@ func ThreatManagerString() *C.char {
 	return C.CString(s)
 }
 
-
-// Optional: expose a string for debugging
-//export ZoneManagerString
-func ZoneManagerString() *C.char {
-	s := zone.GetManager().String()
-	return C.CString(s)
-}
-
 // ---- Int ----
 
 //export Store_SetInt
 func Store_SetInt(key *C.char, val C.longlong) {
-	GetStore().SetInt(C.GoString(key), int64(val))
+	store.GetStore().SetInt(C.GoString(key), int64(val))
 }
 
 //export Store_GetInt
 func Store_GetInt(key *C.char) C.longlong {
-	return C.longlong(GetStore().GetInt(C.GoString(key)))
+	return C.longlong(store.GetStore().GetInt(C.GoString(key)))
 }
 
 //export Store_AddInt
 func Store_AddInt(key *C.char, val C.longlong) {
-	GetStore().AddInt(C.GoString(key), int64(val))
+	store.GetStore().AddInt(C.GoString(key), int64(val))
 }
 
 //export Store_SubInt
 func Store_SubInt(key *C.char, val C.longlong) C.bool {
-	return C.bool(GetStore().SubInt(C.GoString(key), int64(val)))
+	return C.bool(store.GetStore().SubInt(C.GoString(key), int64(val)))
 }
 
 // ---- Float ----
@@ -493,25 +485,25 @@ func Store_Load() C.int {
 //export ZoneConfig_GetMaxNPC
 func ZoneConfig_GetMaxNPC(zoneID *C.char) C.int {
 	id := C.GoString(zoneID)
-	return C.int(GetManager("zones.json").GetMaxNPC(id))
+	return C.int(zoneconfig.GetManager("zones.json").GetMaxNPC(id))
 }
 
 //export ZoneConfig_GetSpawnChance
 func ZoneConfig_GetSpawnChance(zoneID *C.char) C.float {
 	id := C.GoString(zoneID)
-	return C.float(GetManager("zones.json").GetSpawnChance(id))
+	return C.float(zoneconfig.GetManager("zones.json").GetSpawnChance(id))
 }
 
 //export ZoneConfig_GetRandomNPCType
 func ZoneConfig_GetRandomNPCType(zoneID *C.char) *C.char {
 	id := C.GoString(zoneID)
-	npc := GetManager("zones.json").GetRandomNPCType(id)
+	npc := zoneconfig.GetManager("zones.json").GetRandomNPCType(id)
 	return C.CString(npc)
 }
 
 //export ZoneConfig_Reload
 func ZoneConfig_Reload() C.int {
-	err := GetManager("zones.json").Load()
+	err := zoneconfig.GetManager("zones.json").Load()
 	if err != nil {
 		return 0
 	}

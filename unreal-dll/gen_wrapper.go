@@ -199,6 +199,18 @@ func getFunctionCategory(fName string) string{
 		return "Metrics"
 	}
 
+	if strings.Contains(strings.ToLower(fName), "threat"){
+		return "Threat"
+	}
+
+	if strings.Contains(strings.ToLower(fName), "store"){
+		return "Store"
+	}
+
+	if strings.Contains(strings.ToLower(fName), "zoneconfig"){
+		return "Zoneconfig"
+	}
+
 	return ""
 }
 
