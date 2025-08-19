@@ -502,7 +502,7 @@ func ZoneConfig_Reload(path *C.char) C.int {
 	p := C.GoString(path)
 	err := zoneconfig.GetManager(p).Load()
 	if err != nil {
-		return err
+		return C.int(err)
 	}
 	return 1
 }
