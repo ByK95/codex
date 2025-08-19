@@ -1,18 +1,18 @@
-// pkg/zone/zone_test.go
-package zone
+// pkg/threat/threat_test.go
+package threat
 
 import (
 	"testing"
 )
 
-func TestZoneManager_TimedThreat(t *testing.T) {
+func TestThreatManager_TimedThreat(t *testing.T) {
 	manager := GetManager()
 	manager.Reset()
 
-	// Register zones
-	manager.RegisterZone(&Zone{ID: 1})
-	manager.RegisterZone(&Zone{ID: 2})
-	manager.RegisterZone(&Zone{ID: 3})
+	// Register threats
+	manager.RegisterZone(&Threat{ZoneID: 1})
+	manager.RegisterZone(&Threat{ZoneID: 2})
+	manager.RegisterZone(&Threat{ZoneID: 3})
 
 	// Increase threat for zone 1
 	threat := manager.TimedThreat(1, 2.0)
@@ -35,18 +35,18 @@ func TestZoneManager_TimedThreat(t *testing.T) {
 		t.Errorf("Expected zone 2 threat 1.0, got %.2f", z2)
 	}
 
-	// Zone 1 should decay: previous 2.0 +0? decay -1/mapFactor = 2-1 = 1
+	// Zone 1 should decay: previous 2.0 - 1.0/mapFactor = 1.0
 	if z1 := manager.GetZoneThreat(1); z1 != 1.0 {
 		t.Errorf("Expected zone 1 threat 1.0 after decay, got %.2f", z1)
 	}
 }
 
-func TestZoneManager_AdvanceMap(t *testing.T) {
+func TestThreatManager_AdvanceMap(t *testing.T) {
 	manager := GetManager()
 	manager.Reset()
 
-	manager.RegisterZone(&Zone{ID: 1})
-	manager.RegisterZone(&Zone{ID: 2})
+	manager.RegisterZone(&Threat{ZoneID: 1})
+	manager.RegisterZone(&Threat{ZoneID: 2})
 
 	// Increase threat with mapFactor = 1
 	manager.TimedThreat(1, 2.0)
@@ -64,11 +64,11 @@ func TestZoneManager_AdvanceMap(t *testing.T) {
 	}
 }
 
-func TestZoneManager_Reset(t *testing.T) {
+func TestThreatManager_Reset(t *testing.T) {
 	manager := GetManager()
 	manager.Reset()
 
-	manager.RegisterZone(&Zone{ID: 1})
+	manager.RegisterZone(&Threat{ZoneID: 1})
 	manager.TimedThreat(1, 5.0)
 
 	manager.Reset()
@@ -80,7 +80,7 @@ func TestZoneManager_Reset(t *testing.T) {
 	}
 }
 
-func TestZoneManager_AutoCreateZone(t *testing.T) {
+func TestThreatManager_AutoCreateZone(t *testing.T) {
 	manager := GetManager()
 	manager.Reset()
 
