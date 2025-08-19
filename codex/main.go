@@ -476,28 +476,35 @@ func Store_Load() C.int {
 }
 
 //export ZoneConfig_GetMaxNPC
-func ZoneConfig_GetMaxNPC(zoneID *C.char) C.int {
+func ZoneConfig_GetMaxNPC( path *C.char, zoneID *C.char) C.int {
 	id := C.GoString(zoneID)
-	return C.int(zoneconfig.GetManager("zones.json").GetMaxNPC(id))
+	p := C.GoString(path)
+	return C.int(zoneconfig.GetManager(p).GetMaxNPC(id))
 }
 
 //export ZoneConfig_GetSpawnChance
-func ZoneConfig_GetSpawnChance(zoneID *C.char) C.float {
+func ZoneConfig_GetSpawnChance(path *C.char, zoneID *C.char) C.float {
 	id := C.GoString(zoneID)
-	return C.float(zoneconfig.GetManager("zones.json").GetSpawnChance(id))
+	p := C.GoString(path)
+	return C.float(zoneconfig.GetManager(p).GetSpawnChance(id))
 }
 
 //export ZoneConfig_GetRandomNPCType
-func ZoneConfig_GetRandomNPCType(zoneID *C.char) *C.char {
+func ZoneConfig_GetRandomNPCType(path *C.char, zoneID *C.char) *C.char {
 	id := C.GoString(zoneID)
-	npc := zoneconfig.GetManager("zones.json").GetRandomNPCType(id)
+	p := C.GoString(path)
+	npc := zoneconfig.GetManager(p).GetRandomNPCType(id)
 	return C.CString(npc)
 }
 
 //export ZoneConfig_Reload
-func ZoneConfig_Reload() C.int {
-	res := zoneconfig.GetManager("zones.json").Load()
-	return C.int(res)
+func ZoneConfig_Reload(path *C.char) C.int {
+	p := C.GoString(path)
+	err := zoneconfig.GetManager(p).Load()
+	if err != nil {
+		return err
+	}
+	return 1
 }
 
 func main() {}
