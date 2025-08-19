@@ -388,13 +388,6 @@ func ResetThreats() {
 	threat.GetManager().Reset()
 }
 
-// Optional: expose a string for debugging
-//export ThreatManagerString
-func ThreatManagerString() *C.char {
-	s := threat.GetManager().String()
-	return C.CString(s)
-}
-
 // ---- Int ----
 
 //export Store_SetInt
