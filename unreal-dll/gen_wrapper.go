@@ -164,6 +164,7 @@ void U{{ .Filename }}::UnloadDLL()
 // Map C types to Unreal/C++ types
 func mapCTypeToUnreal(cType string) string {
 	cType = strings.ReplaceAll(cType, "long long int", "int64")
+	cType = strings.ReplaceAll(cType, "_Bool", "bool")
 	switch cType {
 	case "_Bool":
 		return "bool"
@@ -197,6 +198,18 @@ func getFunctionCategory(fName string) string{
 
 	if strings.Contains(strings.ToLower(fName), "metrics"){
 		return "Metrics"
+	}
+
+	if strings.Contains(strings.ToLower(fName), "threat"){
+		return "Threat"
+	}
+
+	if strings.Contains(strings.ToLower(fName), "store"){
+		return "Store"
+	}
+
+	if strings.Contains(strings.ToLower(fName), "zoneconfig"){
+		return "Zoneconfig"
 	}
 
 	return ""

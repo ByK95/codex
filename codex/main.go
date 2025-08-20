@@ -11,7 +11,9 @@ import (
 	"codex/pkg/inventory"
 	"codex/pkg/equipment"
 	"codex/pkg/metrics"
-	"codex/pkg/zone"
+	"codex/pkg/threat"
+	"codex/pkg/store"
+	"codex/pkg/zoneconfig"
 	"sync"
 )
 
@@ -361,50 +363,145 @@ func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
 
 // Loot functions are not added reason being in order to pass the list into unreal and back needs 3 different conversations which doesn't worth it imo also taken a look into flatbuffers which offer nice conversations third will be necessary for blueprints again so given up atm but leaving the logic here
 
-//export IncreaseZoneThreat
-func IncreaseZoneThreat(zoneID C.int, amount C.float) C.float {
-	return C.float(zone.GetManager().IncreaseThreat(int32(zoneID), float32(amount)))
+//export IncreaseThreat
+func IncreaseThreat(zoneID C.int, amount C.float) C.float {
+	return C.float(threat.GetManager().IncreaseThreat(int32(zoneID), float32(amount)))
 }
 
-//export TimedZoneThreat
-func TimedZoneThreat(currentID C.int, amount C.float) C.float {
-	return C.float(zone.GetManager().TimedThreat(int32(currentID), float32(amount)))
+//export TimedThreat
+func TimedThreat(currentID C.int, amount C.float) C.float {
+	return C.float(threat.GetManager().TimedThreat(int32(currentID), float32(amount)))
 }
 
-//export Zone_AdvanceMap
-func Zone_AdvanceMap() {
-	zone.GetManager().AdvanceMap()
+//export Threat_AdvanceMap
+func Threat_AdvanceMap() {
+	threat.GetManager().AdvanceMap()
 }
 
-//export GetZoneThreat
-func GetZoneThreat(zoneID C.int) C.float {
-	return C.float(zone.GetManager().GetZoneThreat(int32(zoneID)))
+//export GetThreat
+func GetThreat(zoneID C.int) C.float {
+	return C.float(threat.GetManager().GetZoneThreat(int32(zoneID)))
 }
 
-//export ResetZones
-func ResetZones() {
-	zone.GetManager().Reset()
+//export ResetThreats
+func ResetThreats() {
+	threat.GetManager().Reset()
 }
 
-// Optional: expose a string for debugging
-//export ZoneManagerString
-func ZoneManagerString() *C.char {
-	s := zone.GetManager().String()
-	return C.CString(s)
+// ---- Int ----
+
+//export Store_SetInt
+func Store_SetInt(key *C.char, val C.longlong) {
+	store.GetStore().SetInt(C.GoString(key), int64(val))
 }
 
-//export Increment
-func Increment() {
-    mu.Lock()
-    counter++
-    mu.Unlock()
+//export Store_GetInt
+func Store_GetInt(key *C.char) C.longlong {
+	return C.longlong(store.GetStore().GetInt(C.GoString(key)))
 }
 
-//export GetCount
-func GetCount() int {
-    mu.Lock()
-    defer mu.Unlock()
-    return counter
+//export Store_AddInt
+func Store_AddInt(key *C.char, val C.longlong) {
+	store.GetStore().AddInt(C.GoString(key), int64(val))
+}
+
+//export Store_SubInt
+func Store_SubInt(key *C.char, val C.longlong) C.bool {
+	return C.bool(store.GetStore().SubInt(C.GoString(key), int64(val)))
+}
+
+// ---- Float ----
+
+//export Store_SetFloat
+func Store_SetFloat(key *C.char, val C.double) {
+	store.GetStore().SetFloat(C.GoString(key), float64(val))
+}
+
+//export Store_GetFloat
+func Store_GetFloat(key *C.char) C.double {
+	return C.double(store.GetStore().GetFloat(C.GoString(key)))
+}
+
+//export Store_AddFloat
+func Store_AddFloat(key *C.char, val C.double) {
+	store.GetStore().AddFloat(C.GoString(key), float64(val))
+}
+
+//export Store_SubFloat
+func Store_SubFloat(key *C.char, val C.double) C.bool {
+	return C.bool(store.GetStore().SubFloat(C.GoString(key), float64(val)))
+}
+
+// ---- Bool ----
+
+//export Store_SetBool
+func Store_SetBool(key *C.char, val C.bool) {
+	store.GetStore().SetBool(C.GoString(key), bool(val))
+}
+
+//export Store_GetBool
+func Store_GetBool(key *C.char) C.bool {
+	return C.bool(store.GetStore().GetBool(C.GoString(key)))
+}
+
+// ---- String ----
+
+//export Store_SetString
+func Store_SetString(key *C.char, val *C.char) {
+	store.GetStore().SetString(C.GoString(key), C.GoString(val))
+}
+
+//export Store_GetString
+func Store_GetString(key *C.char) *C.char {
+	s := store.GetStore().GetString(C.GoString(key))
+	return C.CString(s) // caller must free
+}
+
+// ---- Persistence ----
+
+//export Store_Save
+func Store_Save() C.int {
+	if err := store.GetStore().Save(); err != nil {
+		return -1
+	}
+	return 0
+}
+
+//export Store_Load
+func Store_Load() C.int {
+	if err := store.GetStore().Load(); err != nil {
+		return -1
+	}
+	return 0
+}
+
+//export ZoneConfig_GetMaxNPC
+func ZoneConfig_GetMaxNPC( path *C.char, zoneID *C.char) C.int {
+	id := C.GoString(zoneID)
+	p := C.GoString(path)
+	return C.int(zoneconfig.GetManager(p).GetMaxNPC(id))
+}
+
+//export ZoneConfig_GetSpawnChance
+func ZoneConfig_GetSpawnChance(path *C.char, zoneID *C.char) C.float {
+	id := C.GoString(zoneID)
+	p := C.GoString(path)
+	return C.float(zoneconfig.GetManager(p).GetSpawnChance(id))
+}
+
+//export ZoneConfig_GetRandomNPCType
+func ZoneConfig_GetRandomNPCType(path *C.char, zoneID *C.char) *C.char {
+	id := C.GoString(zoneID)
+	p := C.GoString(path)
+	npc := zoneconfig.GetManager(p).GetRandomNPCType(id)
+	return C.CString(npc)
+}
+
+//export ZoneConfig_Reload
+func ZoneConfig_Reload(path *C.char) C.int {
+	p := C.GoString(path)
+	err := zoneconfig.GetManager(p).Load()
+	return C.int(err)
 }
 
 func main() {}
