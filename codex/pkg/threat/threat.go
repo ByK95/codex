@@ -69,12 +69,16 @@ func (m *ThreatManager) TimedThreat(currentID int32, amount float32) float32 {
 	// Increase current zone threat
 	z.Value += amount
 
-	// Decay other zones
+	if len(m.zones) < 2{
+		return z.Value
+	}
+
+	decay := amount / (float32(1+len(m.zones)) + m.mapFactor)
 	for id, other := range m.zones {
 		if id == currentID {
 			continue
 		}
-		other.Value -= amount / m.mapFactor
+		other.Value -= decay
 		if other.Value < 0 {
 			other.Value = 0
 		}
@@ -88,6 +92,13 @@ func (m *ThreatManager) AdvanceMap() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.mapFactor += 1.0
+}
+
+// GetMapFactor returns the current map factor
+func (m *ThreatManager) GetMapFactor() float32 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.mapFactor
 }
 
 // GetZoneThreat returns current threat of a zone

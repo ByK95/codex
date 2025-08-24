@@ -379,6 +379,11 @@ func Threat_AdvanceMap() {
 	threat.GetManager().AdvanceMap()
 }
 
+//export Threat_GetMapFactor
+func Threat_GetMapFactor() C.float {
+	return C.float(threat.GetManager().GetMapFactor())
+}
+
 //export GetThreat
 func GetThreat(zoneID C.int) C.float {
 	return C.float(threat.GetManager().GetZoneThreat(int32(zoneID)))

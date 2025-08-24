@@ -20,26 +20,31 @@ func TestThreatManager_TimedThreat(t *testing.T) {
 		t.Errorf("Expected zone 1 threat 2.0, got %.2f", threat)
 	}
 
-	// Other zones should decay (amount / mapFactor = 2/1)
+	// Other zones should decay by (2.0 / 5 = 0.4), but since they start at 0, they stay at 0
 	if z2 := manager.GetZoneThreat(2); z2 != 0 {
 		t.Errorf("Expected zone 2 threat 0 after decay, got %.2f", z2)
 	}
-
 	if z3 := manager.GetZoneThreat(3); z3 != 0 {
 		t.Errorf("Expected zone 3 threat 0 after decay, got %.2f", z3)
 	}
 
 	// Increase threat for zone 2
-	manager.TimedThreat(2, 1.0)
-	if z2 := manager.GetZoneThreat(2); z2 != 1.0 {
-		t.Errorf("Expected zone 2 threat 1.0, got %.2f", z2)
+	threat = manager.TimedThreat(2, 1.0)
+	if threat != 1.0 {
+		t.Errorf("Expected zone 2 threat 1.0, got %.2f", threat)
 	}
 
-	// Zone 1 should decay: previous 2.0 - 1.0/mapFactor = 1.0
-	if z1 := manager.GetZoneThreat(1); z1 != 1.0 {
-		t.Errorf("Expected zone 1 threat 1.0 after decay, got %.2f", z1)
+	// Zone 1 should decay by (1.0 / 5 = 0.2): 2.0 -> 1.8
+	if z1 := manager.GetZoneThreat(1); z1 != 1.8 {
+		t.Errorf("Expected zone 1 threat 1.8 after decay, got %.2f", z1)
+	}
+
+	// Zone 3 should also decay (0 - 0.2 = 0 floored)
+	if z3 := manager.GetZoneThreat(3); z3 != 0 {
+		t.Errorf("Expected zone 3 threat 0 after decay, got %.2f", z3)
 	}
 }
+
 
 func TestThreatManager_AdvanceMap(t *testing.T) {
 	manager := GetManager()
