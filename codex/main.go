@@ -533,7 +533,7 @@ func Crafting_Register(name *C.char, path *C.char) C.int{
 func Crafting_Reset(name *C.char) {
 	n := C.GoString(name)
 	
-	crafting.Register(n, p)
+	crafting.Reset(n)
 }
 
 //export Crafting_ResetAll
