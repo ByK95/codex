@@ -15,6 +15,7 @@ import (
 	"codex/pkg/store"
 	"codex/pkg/zoneconfig"
 	voronoi "codex/pkg/grid_voronoi"
+	"codex/pkg/crafting"
 	"sync"
 )
 
@@ -519,5 +520,62 @@ func Voronoi_Init(width C.int, height C.int, numZones C.int, seed C.longlong) {
 func Voronoi_ZoneAt(x C.int, y C.int) C.int {
 	return C.int(voronoi.ZoneAt(int(x), int(y)))
 }
+
+//export Crafting_Register
+func Crafting_Register(name *C.char, path *C.char) C.int{
+	n := C.GoString(name)
+	p := C.GoString(path)
+	
+	return C.int(crafting.Register(n, p))
+}
+
+//export Crafting_Reset
+func Crafting_Reset(name *C.char) {
+	n := C.GoString(name)
+	
+	crafting.Register(n, p)
+}
+
+//export Crafting_ResetAll
+func Crafting_ResetAll() {
+	crafting.ResetAll()
+}
+
+//export Crafting_FindFirstByRequirement
+func Crafting_FindFirstByRequirement(managerName *C.char, reqID *C.char) *C.char {
+	name := C.GoString(managerName)
+	req := C.GoString(reqID)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.CString("")
+	}
+
+	items := m.FindByRequirement(req)
+	if len(items) == 0 {
+		return C.CString("")
+	}
+
+	return C.CString(items[0].ID)
+}
+
+//export Crafting_GetFirstRequirement
+func Crafting_GetFirstRequirement(managerName *C.char, craftID *C.char) *C.char {
+	name := C.GoString(managerName)
+	id := C.GoString(craftID)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.CString("")
+	}
+
+	c, exists := m.GetCraftable(id)
+	if !exists || len(c.Requirements) == 0 {
+		return C.CString("")
+	}
+
+	return C.CString(c.Requirements[0].ID)
+}
+
 
 func main() {}
