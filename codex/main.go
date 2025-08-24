@@ -14,7 +14,7 @@ import (
 	"codex/pkg/threat"
 	"codex/pkg/store"
 	"codex/pkg/zoneconfig"
-	"codex/pkg/grid_voronoi"
+	voronoi "codex/pkg/grid_voronoi"
 	"sync"
 )
 
@@ -507,12 +507,12 @@ func ZoneConfig_Reload(path *C.char) C.int {
 
 //export Voronoi_Init
 func Voronoi_Init(width C.int, height C.int, numZones C.int, seed C.longlong) {
-	Init(int(width), int(height), int(numZones), int64(seed))
+	voronoi.Init(int(width), int(height), int(numZones), int64(seed))
 }
 
 //export Voronoi_ZoneAt
 func Voronoi_ZoneAt(x C.int, y C.int) C.int {
-	return C.int(ZoneAt(int(x), int(y)))
+	return C.int(voronoi.ZoneAt(int(x), int(y)))
 }
 
 func main() {}
