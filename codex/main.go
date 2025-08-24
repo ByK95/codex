@@ -14,6 +14,7 @@ import (
 	"codex/pkg/threat"
 	"codex/pkg/store"
 	"codex/pkg/zoneconfig"
+	voronoi "codex/pkg/grid_voronoi"
 	"sync"
 )
 
@@ -378,6 +379,11 @@ func Threat_AdvanceMap() {
 	threat.GetManager().AdvanceMap()
 }
 
+//export Threat_GetMapFactor
+func Threat_GetMapFactor() C.float {
+	return C.float(threat.GetManager().GetMapFactor())
+}
+
 //export GetThreat
 func GetThreat(zoneID C.int) C.float {
 	return C.float(threat.GetManager().GetZoneThreat(int32(zoneID)))
@@ -502,6 +508,16 @@ func ZoneConfig_Reload(path *C.char) C.int {
 	p := C.GoString(path)
 	err := zoneconfig.GetManager(p).Load()
 	return C.int(err)
+}
+
+//export Voronoi_Init
+func Voronoi_Init(width C.int, height C.int, numZones C.int, seed C.longlong) {
+	voronoi.Init(int(width), int(height), int(numZones), int64(seed))
+}
+
+//export Voronoi_ZoneAt
+func Voronoi_ZoneAt(x C.int, y C.int) C.int {
+	return C.int(voronoi.ZoneAt(int(x), int(y)))
 }
 
 func main() {}

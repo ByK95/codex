@@ -212,6 +212,10 @@ func getFunctionCategory(fName string) string{
 		return "Zoneconfig"
 	}
 
+	if strings.Contains(strings.ToLower(fName), "voronoi"){
+		return "Voronoi"
+	}
+
 	return ""
 }
 
