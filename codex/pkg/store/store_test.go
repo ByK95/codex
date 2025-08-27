@@ -3,7 +3,6 @@ package store
 import (
 	"os"
 	"testing"
-
 )
 
 func TestStoreBasicOperations(t *testing.T) {
@@ -43,6 +42,7 @@ func TestStorePersistence(t *testing.T) {
 	s.SetFloat("player.speed", 1.23)
 	s.SetBool("quest.completed", false)
 	s.SetString("player.name", "TestPlayer")
+	s.SetInt("player.progress.level", 7) // nested key
 
 	if err := s.Save(); err != nil {
 		t.Fatalf("Save failed: %v", err)
@@ -66,6 +66,9 @@ func TestStorePersistence(t *testing.T) {
 	}
 	if v := s2.GetString("player.name"); v != "TestPlayer" {
 		t.Errorf("expected 'TestPlayer', got %s", v)
+	}
+	if v := s2.GetInt("player.progress.level"); v != 7 {
+		t.Errorf("expected 7, got %d", v)
 	}
 }
 
@@ -179,3 +182,147 @@ func TestFileNotFoundLoad(t *testing.T) {
 	}
 }
 
+func TestKeys(t *testing.T) {
+	s := NewStore("")
+
+	// Setup nested structure
+	s.SetInt("player.progress.level", 7)
+	s.SetString("player.name", "Bayram")
+	s.SetFloat("player.speed", 1.5)
+	s.SetInt("currency.gold", 200)
+
+	// Test top-level
+	top := s.Keys("")
+	expectedTop := map[string]bool{"player": true, "currency": true}
+	if len(top) != len(expectedTop) {
+		t.Errorf("expected %d top-level keys, got %d", len(expectedTop), len(top))
+	}
+	for _, k := range top {
+		if !expectedTop[k] {
+			t.Errorf("unexpected top-level key: %s", k)
+		}
+	}
+
+	// Test child keys under "player"
+	playerChildren := s.Keys("player")
+	expectedPlayer := map[string]bool{"progress": true, "name": true, "speed": true}
+	if len(playerChildren) != len(expectedPlayer) {
+		t.Errorf("expected %d player children, got %d", len(expectedPlayer), len(playerChildren))
+	}
+	for _, k := range playerChildren {
+		if !expectedPlayer[k] {
+			t.Errorf("unexpected player child key: %s", k)
+		}
+	}
+
+	// Test nested child under "player.progress"
+	progressChildren := s.Keys("player.progress")
+	expectedProgress := map[string]bool{"level": true}
+	if len(progressChildren) != len(expectedProgress) {
+		t.Errorf("expected %d progress children, got %d", len(expectedProgress), len(progressChildren))
+	}
+	if progressChildren[0] != "level" {
+		t.Errorf("expected 'level', got %s", progressChildren[0])
+	}
+
+	// Nonexistent prefix should return empty list
+	none := s.Keys("does.not.exist")
+	if len(none) != 0 {
+		t.Errorf("expected no keys, got %v", none)
+	}
+}
+
+func TestStoreFullKeys(t *testing.T) {
+    s := NewStore("test.json")
+
+    // Insert some values
+    s.SetString("player.name", "TestPlayer")
+    s.SetInt("player.level", 7)
+    s.SetInt("currency.gold", 200)
+
+    tests := []struct {
+        prefix   string
+        expected []string
+    }{
+        {
+            prefix:   "",
+            expected: []string{"player", "currency"},
+        },
+        {
+            prefix:   "player",
+            expected: []string{"player.name", "player.level"},
+        },
+        {
+            prefix:   "currency",
+            expected: []string{"currency.gold"},
+        },
+        {
+            prefix:   "quest", // doesn't exist
+            expected: nil,
+        },
+    }
+
+    for _, tt := range tests {
+        got := s.FullKeys(tt.prefix)
+        if !equalUnordered(got, tt.expected) {
+            t.Errorf("FullKeys(%q) = %v, want %v", tt.prefix, got, tt.expected)
+        }
+    }
+}
+
+// helper to compare slices ignoring order
+func equalUnordered(a, b []string) bool {
+    if len(a) != len(b) {
+        return false
+    }
+    m := make(map[string]int)
+    for _, v := range a {
+        m[v]++
+    }
+    for _, v := range b {
+        if m[v] == 0 {
+            return false
+        }
+        m[v]--
+    }
+    return true
+}
+
+func TestLoadFromText(t *testing.T) {
+	text := `{
+		"currency.gold": {"t": 0, "v": 200},
+		"player.name": {"t": 3, "v": "TestPlayer"},
+		"player.progress.level": {"t": 0, "v": 7},
+		"player.speed": {"t": 1, "v": 1.23},
+		"quest.completed": {"t": 2, "v": false}
+	}`
+
+	s := NewStore(".")
+	err := s.LoadFromText(text)
+	if err != nil {
+		t.Fatalf("LoadFromText failed: %v", err)
+	}
+
+	// integers
+	if v := s.GetInt("currency.gold"); v != 200 {
+		t.Errorf("expected 200, got %v ", v)
+	}
+	if v := s.GetInt("player.progress.level"); v != 7 {
+		t.Errorf("expected 7, got %v ", v)
+	}
+
+	// float
+	if v := s.GetFloat("player.speed"); v != 1.23 {
+		t.Errorf("expected 1.23, got %v ", v)
+	}
+
+	// string
+	if v := s.GetString("player.name");  v != "TestPlayer" {
+		t.Errorf("expected 'TestPlayer', got %q ", v)
+	}
+
+	// bool
+	if v := s.GetBool("quest.completed"); v != false{
+		t.Errorf("expected false, got %v", v)
+	}
+}
