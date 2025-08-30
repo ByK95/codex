@@ -37,7 +37,7 @@ type node struct {
 
 var (
 	globalStore *Store
-	storeOnce   sync.Once
+	once   sync.Once
 )
 
 type Store struct {
@@ -48,9 +48,9 @@ type Store struct {
 }
 
 // GetStore returns the singleton Store instance, creating it if needed
-func GetStore(path string) *Store {
-	storeOnce.Do(func() {
-		globalStore = NewStore(path)
+func GetStore() *Store {
+	once.Do(func() {
+		globalStore = NewStore("./")
 	})
 	return globalStore
 }
