@@ -50,7 +50,7 @@ type Store struct {
 // GetStore returns the singleton Store instance, creating it if needed
 func GetStore() *Store {
 	once.Do(func() {
-		globalStore = NewStore("./")
+		globalStore = NewStore("./store.json")
 	})
 	return globalStore
 }
