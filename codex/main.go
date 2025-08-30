@@ -15,6 +15,7 @@ import (
 	"codex/pkg/store"
 	"codex/pkg/zoneconfig"
 	voronoi "codex/pkg/grid_voronoi"
+	"codex/pkg/crafting"
 	"sync"
 )
 
@@ -175,63 +176,63 @@ func EquipmentNew() {
 }
 
 //export EquipmentDefineSlot
-func EquipmentDefineSlot(slotType C.int, maxSlots C.int) C.int {
+func EquipmentDefineSlot(slotType *C.char, maxSlots C.int) C.int {
 	if em == nil {
 		return 0
 	}
-	if em.DefineSlot(int(slotType), int(maxSlots)) {
+	if em.DefineSlot(C.GoString(slotType), int(maxSlots)) {
 		return 1
 	}
 	return 0
 }
 
 //export EquipmentRemoveSlotDefinition
-func EquipmentRemoveSlotDefinition(slotType C.int) C.int {
+func EquipmentRemoveSlotDefinition(slotType *C.char) C.int {
 	if em == nil {
 		return 0
 	}
-	if em.RemoveSlotDefinition(int(slotType)) {
+	if em.RemoveSlotDefinition(C.GoString(slotType)) {
 		return 1
 	}
 	return 0
 }
 
 //export EquipmentEquipItem
-func EquipmentEquipItem(slotType C.int, itemID C.int) C.int {
+func EquipmentEquipItem(slotType *C.char, itemID *C.char) C.int {
 	if em == nil {
 		return 0
 	}
-	if em.EquipItem(int(slotType), int(itemID)) {
+	if em.EquipItem(C.GoString(slotType), C.GoString(itemID)) {
 		return 1
 	}
 	return 0
 }
 
 //export EquipmentUnequipItem
-func EquipmentUnequipItem(slotType C.int, itemID C.int) C.int {
+func EquipmentUnequipItem(slotType *C.char, itemID *C.char) C.int {
 	if em == nil {
 		return 0
 	}
-	if em.UnequipItem(int(slotType), int(itemID)) {
+	if em.UnequipItem(C.GoString(slotType), C.GoString(itemID)) {
 		return 1
 	}
 	return 0
 }
 
 //export EquipmentIsSlotFull
-func EquipmentIsSlotFull(slotType C.int) C.bool {
+func EquipmentIsSlotFull(slotType *C.char) C.bool {
 	if em == nil {
 		return false
 	}
-	return C.bool(em.IsSlotFull(int(slotType)))
+	return C.bool(em.IsSlotFull(C.GoString(slotType)))
 }
 
 //export EquipmentIsItemEquipped
-func EquipmentIsItemEquipped(slotType C.int, itemID C.int) C.bool {
+func EquipmentIsItemEquipped(slotType *C.char, itemID *C.char) C.bool {
 	if em == nil {
 		return false
 	}
-	return C.bool(em.IsItemEquipped(int(slotType), int(itemID)))
+	return C.bool(em.IsItemEquipped(C.GoString(slotType), C.GoString(itemID)))
 }
 
 //export EquipmentResetIterator
@@ -239,18 +240,20 @@ func EquipmentResetIterator() C.bool {
 	if em == nil {
 		return false
 	}
-	
 	em.ResetIterator()
 	return true
 }
 
 //export EquipmentNextEquippedItem
-func EquipmentNextEquippedItem() C.int {
+func EquipmentNextEquippedItem() *C.char {
 	if em == nil {
-		return 0
+		return C.CString("")
 	}
-	
-	return C.int(em.NextEquippedItem())
+	item := em.NextEquippedItem()
+	if item == "" {
+		return C.CString("")
+	}
+	return C.CString(item)
 }
 
 //export EquipmentReset
@@ -258,28 +261,24 @@ func EquipmentReset() C.bool {
 	if em == nil {
 		return false
 	}
-	
 	em.Reset()
 	return true
 }
 
 //export EquipmentClearSlot
-func EquipmentClearSlot(slotType C.int) C.bool {
+func EquipmentClearSlot(slotType *C.char) C.bool {
 	if em == nil {
 		return false
 	}
-	
-	return C.bool(em.ClearSlot(int(slotType)))
+	return C.bool(em.ClearSlot(C.GoString(slotType)))
 }
 
-
 //export EquipmentGetSlotAvailability
-func EquipmentGetSlotAvailability(slotType C.int) C.int {
+func EquipmentGetSlotAvailability(slotType *C.char) C.int {
 	if em == nil {
 		return 0
 	}
-	
-	return C.int(em.GetSlotAvailability(int(slotType)))
+	return C.int(em.GetSlotAvailability(C.GoString(slotType)))
 }
 
 func Metrics_IncInt(name *C.char) {
@@ -519,5 +518,62 @@ func Voronoi_Init(width C.int, height C.int, numZones C.int, seed C.longlong) {
 func Voronoi_ZoneAt(x C.int, y C.int) C.int {
 	return C.int(voronoi.ZoneAt(int(x), int(y)))
 }
+
+//export Crafting_Register
+func Crafting_Register(name *C.char, path *C.char) C.int{
+	n := C.GoString(name)
+	p := C.GoString(path)
+	
+	return C.int(crafting.Register(n, p))
+}
+
+//export Crafting_Reset
+func Crafting_Reset(name *C.char) {
+	n := C.GoString(name)
+	
+	crafting.Reset(n)
+}
+
+//export Crafting_ResetAll
+func Crafting_ResetAll() {
+	crafting.ResetAll()
+}
+
+//export Crafting_FindFirstByRequirement
+func Crafting_FindFirstByRequirement(managerName *C.char, reqID *C.char) *C.char {
+	name := C.GoString(managerName)
+	req := C.GoString(reqID)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.CString("")
+	}
+
+	items := m.FindByRequirement(req)
+	if len(items) == 0 {
+		return C.CString("")
+	}
+
+	return C.CString(items[0].ID)
+}
+
+//export Crafting_GetFirstRequirement
+func Crafting_GetFirstRequirement(managerName *C.char, craftID *C.char) *C.char {
+	name := C.GoString(managerName)
+	id := C.GoString(craftID)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.CString("")
+	}
+
+	c, exists := m.GetCraftable(id)
+	if !exists || len(c.Requirements) == 0 {
+		return C.CString("")
+	}
+
+	return C.CString(c.Requirements[0].ID)
+}
+
 
 func main() {}

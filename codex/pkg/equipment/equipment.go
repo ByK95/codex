@@ -8,16 +8,16 @@ import (
 
 // SlotConfig defines configuration for an equipment slot
 type SlotConfig struct {
-	ItemIDS  []int // List of currently equipped item IDs (empty slice = no items)
-	MaxSlots int   // Maximum number of items that can be equipped in this slot type
+	ItemIDS  []string // List of currently equipped item IDs (empty slice = no items)
+	MaxSlots int      // Maximum number of items that can be equipped in this slot type
 }
 
 // EquipmentManager manages equipment slots with runtime-configurable slot types
 type EquipmentManager struct {
-	mu    sync.RWMutex
-	slots map[int]*SlotConfig // slotType -> SlotConfig
-	iterIndex    int
-	iterItems    []int
+	mu        sync.RWMutex
+	slots     map[string]*SlotConfig // slotType -> SlotConfig
+	iterIndex int
+	iterItems []string
 }
 
 // Global equipment manager instance
@@ -35,7 +35,7 @@ func GetManager() *EquipmentManager {
 // NewEquipmentManager creates a new equipment manager
 func NewEquipmentManager() *EquipmentManager {
 	return &EquipmentManager{
-		slots: make(map[int]*SlotConfig),
+		slots:     make(map[string]*SlotConfig),
 		iterIndex: 0,
 	}
 }
@@ -43,7 +43,7 @@ func NewEquipmentManager() *EquipmentManager {
 // DefineSlot defines a new slot type with its maximum capacity
 // If the slot type already exists, it updates the MaxSlots but keeps the current ItemIDS
 // Returns true on success, false on failure
-func (em *EquipmentManager) DefineSlot(slotType int, maxSlots int) bool {
+func (em *EquipmentManager) DefineSlot(slotType string, maxSlots int) bool {
 	if maxSlots < 1 {
 		return false
 	}
@@ -54,14 +54,12 @@ func (em *EquipmentManager) DefineSlot(slotType int, maxSlots int) bool {
 	if existing, exists := em.slots[slotType]; exists {
 		// Update max slots but keep current items
 		existing.MaxSlots = maxSlots
-		// If the new max is smaller than current items, truncate the list
 		if len(existing.ItemIDS) > maxSlots {
 			existing.ItemIDS = existing.ItemIDS[:maxSlots]
 		}
 	} else {
-		// Create new slot
 		em.slots[slotType] = &SlotConfig{
-			ItemIDS:  make([]int, 0), // Empty by default
+			ItemIDS:  make([]string, 0),
 			MaxSlots: maxSlots,
 		}
 	}
@@ -70,8 +68,7 @@ func (em *EquipmentManager) DefineSlot(slotType int, maxSlots int) bool {
 }
 
 // RemoveSlotDefinition removes a slot type definition entirely
-// Returns true on success, false if slot doesn't exist
-func (em *EquipmentManager) RemoveSlotDefinition(slotType int) bool {
+func (em *EquipmentManager) RemoveSlotDefinition(slotType string) bool {
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
@@ -84,9 +81,8 @@ func (em *EquipmentManager) RemoveSlotDefinition(slotType int) bool {
 }
 
 // EquipItem equips an item to the specified slot type
-// Returns true on success, false on failure
-func (em *EquipmentManager) EquipItem(slotType int, itemID int) bool {
-	if itemID <= 0 { // Changed to <= 0 to prevent 0 as a valid item ID
+func (em *EquipmentManager) EquipItem(slotType string, itemID string) bool {
+	if itemID == "" {
 		return false
 	}
 
@@ -98,15 +94,13 @@ func (em *EquipmentManager) EquipItem(slotType int, itemID int) bool {
 		return false
 	}
 
-	// Check if we've reached the maximum slots
 	if len(slot.ItemIDS) >= slot.MaxSlots {
 		return false
 	}
 
-	// Check if item is already equipped in this slot
 	for _, id := range slot.ItemIDS {
 		if id == itemID {
-			return false // Item already equipped
+			return false // already equipped
 		}
 	}
 
@@ -115,8 +109,7 @@ func (em *EquipmentManager) EquipItem(slotType int, itemID int) bool {
 }
 
 // UnequipItem removes the item from the specified slot type
-// Returns true on success, false if slot doesn't exist or item not found
-func (em *EquipmentManager) UnequipItem(slotType int, itemID int) bool {
+func (em *EquipmentManager) UnequipItem(slotType string, itemID string) bool {
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
@@ -125,7 +118,6 @@ func (em *EquipmentManager) UnequipItem(slotType int, itemID int) bool {
 		return false
 	}
 
-	// Find and remove the item
 	for i, id := range slot.ItemIDS {
 		if id == itemID {
 			slot.ItemIDS = append(slot.ItemIDS[:i], slot.ItemIDS[i+1:]...)
@@ -133,34 +125,31 @@ func (em *EquipmentManager) UnequipItem(slotType int, itemID int) bool {
 		}
 	}
 
-	return false // Item not found
+	return false
 }
 
-// GetEquippedItems returns all item IDs equipped in the specified slot type
-// Returns empty slice if slot is empty or doesn't exist
-func (em *EquipmentManager) GetEquippedItems(slotType int) []int {
+// GetEquippedItems returns all item IDs for a slot
+func (em *EquipmentManager) GetEquippedItems(slotType string) []string {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
 	slot, exists := em.slots[slotType]
 	if !exists {
-		return []int{}
+		return []string{}
 	}
 
-	// Return a copy to prevent external modification
-	result := make([]int, len(slot.ItemIDS))
+	result := make([]string, len(slot.ItemIDS))
 	copy(result, slot.ItemIDS)
 	return result
 }
 
-// IsSlotEmpty returns true if the specified slot type is empty or doesn't exist
-func (em *EquipmentManager) IsSlotEmpty(slotType int) bool {
-	items := em.GetEquippedItems(slotType)
-	return len(items) == 0
+// IsSlotEmpty returns true if no items are equipped
+func (em *EquipmentManager) IsSlotEmpty(slotType string) bool {
+	return len(em.GetEquippedItems(slotType)) == 0
 }
 
-// IsSlotFull returns true if the specified slot type has reached its maximum capacity
-func (em *EquipmentManager) IsSlotFull(slotType int) bool {
+// IsSlotFull returns true if slot reached max capacity
+func (em *EquipmentManager) IsSlotFull(slotType string) bool {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
@@ -172,10 +161,9 @@ func (em *EquipmentManager) IsSlotFull(slotType int) bool {
 	return len(slot.ItemIDS) >= slot.MaxSlots
 }
 
-// IsItemEquipped returns true if the specified item is equipped in the given slot type
-func (em *EquipmentManager) IsItemEquipped(slotType int, itemID int) bool {
-	items := em.GetEquippedItems(slotType)
-	for _, id := range items {
+// IsItemEquipped checks if item is in slot
+func (em *EquipmentManager) IsItemEquipped(slotType string, itemID string) bool {
+	for _, id := range em.GetEquippedItems(slotType) {
 		if id == itemID {
 			return true
 		}
@@ -183,12 +171,12 @@ func (em *EquipmentManager) IsItemEquipped(slotType int, itemID int) bool {
 	return false
 }
 
-// GetAllEquippedItems returns an array of all equipped item IDs across all slots
-func (em *EquipmentManager) GetAllEquippedItems() []int {
+// GetAllEquippedItems returns all items across slots
+func (em *EquipmentManager) GetAllEquippedItems() []string {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
-	var result []int
+	var result []string
 	for _, slot := range em.slots {
 		result = append(result, slot.ItemIDS...)
 	}
@@ -196,7 +184,7 @@ func (em *EquipmentManager) GetAllEquippedItems() []int {
 	return result
 }
 
-// ResetIterator resets the iterator state
+// ResetIterator resets item iterator
 func (em *EquipmentManager) ResetIterator() {
 	em.mu.Lock()
 	defer em.mu.Unlock()
@@ -206,28 +194,28 @@ func (em *EquipmentManager) ResetIterator() {
 	for _, slot := range em.slots {
 		em.iterItems = append(em.iterItems, slot.ItemIDS...)
 	}
-	sort.Ints(em.iterItems)
+	sort.Strings(em.iterItems)
 }
 
-// NextEquippedItem returns the next equipped item ID or -1 if finished
-func (em *EquipmentManager) NextEquippedItem() int {
+// NextEquippedItem returns next item, or "" if finished
+func (em *EquipmentManager) NextEquippedItem() string {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
 	if em.iterIndex >= len(em.iterItems) {
-		return -1
+		return ""
 	}
 	val := em.iterItems[em.iterIndex]
 	em.iterIndex++
 	return val
 }
 
-// GetAllSlotTypes returns all defined slot types
-func (em *EquipmentManager) GetAllSlotTypes() []int {
+// GetAllSlotTypes returns defined slot types
+func (em *EquipmentManager) GetAllSlotTypes() []string {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
-	slotTypes := make([]int, 0, len(em.slots))
+	slotTypes := make([]string, 0, len(em.slots))
 	for slotType := range em.slots {
 		slotTypes = append(slotTypes, slotType)
 	}
@@ -235,18 +223,18 @@ func (em *EquipmentManager) GetAllSlotTypes() []int {
 	return slotTypes
 }
 
-// Clear removes all equipped items but keeps slot definitions
+// Clear removes all equipped items
 func (em *EquipmentManager) Clear() {
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
 	for _, slot := range em.slots {
-		slot.ItemIDS = slot.ItemIDS[:0] // Clear slice but keep capacity
+		slot.ItemIDS = slot.ItemIDS[:0]
 	}
 }
 
-// ClearSlot removes all equipped items from a specific slot but keeps the slot definition
-func (em *EquipmentManager) ClearSlot(slotType int) bool {
+// ClearSlot removes all items from a slot
+func (em *EquipmentManager) ClearSlot(slotType string) bool {
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
@@ -255,21 +243,20 @@ func (em *EquipmentManager) ClearSlot(slotType int) bool {
 		return false
 	}
 
-	slot.ItemIDS = slot.ItemIDS[:0] // Clear slice but keep capacity
+	slot.ItemIDS = slot.ItemIDS[:0]
 	return true
 }
 
-// Reset removes all slot definitions and equipped items
+// Reset removes all slots
 func (em *EquipmentManager) Reset() {
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
-	em.slots = make(map[int]*SlotConfig)
+	em.slots = make(map[string]*SlotConfig)
 }
 
-// GetSlotCapacity returns the current usage and maximum capacity of a slot
-// Returns (currentCount, maxSlots, exists)
-func (em *EquipmentManager) GetSlotAvailability(slotType int) int  {
+// GetSlotAvailability returns remaining capacity
+func (em *EquipmentManager) GetSlotAvailability(slotType string) int {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
