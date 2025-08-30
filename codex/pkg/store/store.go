@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 type ValueType int
@@ -17,6 +19,11 @@ const (
 	BoolType
 	StringType
 )
+
+type DrawItem struct {
+	Name   string
+	Chance int64
+}
 
 type StoreEntry struct {
 	Type  ValueType   `json:"t"`
@@ -32,12 +39,14 @@ type Store struct {
 	mu   sync.RWMutex
 	root *node
 	path string
+	rng *rand.Rand
 }
 
 func NewStore(path string) *Store {
 	return &Store{
 		root: &node{children: make(map[string]*node)},
 		path: path,
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -214,6 +223,41 @@ func (s *Store) FullKeys(prefix string) []string {
 		}
     }
     return keys
+}
+
+func (s *Store) RandomSelect(prefix string) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	children := s.FullKeys(prefix)
+
+	var items []DrawItem
+	var total int64
+
+	for _, child := range children {
+		name := s.GetString(child + ".name")
+		chance := s.GetInt(child + ".chance")
+		if name != "" && chance > 0 {
+			items = append(items, DrawItem{Name: name, Chance: chance})
+			total += chance
+		}
+	}
+
+	if total == 0 || len(items) == 0 {
+		return ""
+	}
+
+	roll := s.rng.Int63n(total)
+
+	var cumulative int64
+	for _, item := range items {
+		cumulative += item.Chance
+		if roll < cumulative {
+			return item.Name
+		}
+	}
+
+	return ""
 }
 
 

@@ -3,6 +3,7 @@ package store
 import (
 	"os"
 	"testing"
+	"fmt"
 )
 
 func TestStoreBasicOperations(t *testing.T) {
@@ -324,5 +325,65 @@ func TestLoadFromText(t *testing.T) {
 	// bool
 	if v := s.GetBool("quest.completed"); v != false{
 		t.Errorf("expected false, got %v", v)
+	}
+}
+
+
+func TestRandomSelection(t *testing.T) {
+	text := `{
+		"galactic_draw.1.name": {"t": 3, "v": "ship.starlance"},
+		"galactic_draw.1.chance": {"t": 0, "v": 90},
+		"galactic_draw.2.name": {"t": 3, "v": "weapon.laser"},
+		"galactic_draw.2.chance": {"t": 0, "v": 90},
+		"galactic_draw.3.name": {"t": 3, "v": "extras.radar"},
+		"galactic_draw.3.chance": {"t": 0, "v": 90},
+		"galactic_draw.4.name": {"t": 3, "v": "captain.skywalker"},
+		"galactic_draw.4.chance": {"t": 0, "v": 90},
+		"galactic_draw.5.name": {"t": 3, "v": "captain.luke"},
+		"galactic_draw.5.chance": {"t": 0, "v": 90},
+		"galactic_draw.6.name": {"t": 3, "v": "weapon.rocket_launcher"},
+		"galactic_draw.6.chance": {"t": 0, "v": 10},
+		"galactic_draw.7.name": {"t": 3, "v": "weapon.ion_ball"},
+		"galactic_draw.7.chance": {"t": 0, "v": 1}
+	}`
+
+	s := NewStore(".")
+	err := s.LoadFromText(text)
+
+	if err != nil {
+		t.Fatalf("LoadFromText failed: %v", err)
+	}
+
+	const runs = 200
+	counts := make(map[string]int)
+
+	for i := 0; i < runs; i++ {
+		res := s.RandomSelect("galactic_draw")
+		if res == "" {
+			t.Fatalf("RandomSelect returned empty at iteration %d", i)
+		}
+		counts[res]++
+	}
+
+	// Assert only expected keys are drawn
+	expected := map[string]bool{
+		"ship.starlance":       true,
+		"weapon.laser":         true,
+		"extras.radar":         true,
+		"captain.skywalker":    true,
+		"captain.luke":         true,
+		"weapon.rocket_launcher": true,
+		"weapon.ion_ball":      true,
+	}
+	for key := range counts {
+		if !expected[key] {
+			t.Errorf("Unexpected draw result: %q", key)
+		}
+	}
+
+	// Print result distribution
+	fmt.Println("Distribution after", runs, "runs:")
+	for k, v := range counts {
+		fmt.Printf("%-25s %d\n", k, v)
 	}
 }
