@@ -42,6 +42,14 @@ type Store struct {
 	rng *rand.Rand
 }
 
+// GetStore returns the singleton Store instance, creating it if needed
+func GetStore(path string) *Store {
+	storeOnce.Do(func() {
+		globalStore = NewStore(path)
+	})
+	return globalStore
+}
+
 func NewStore(path string) *Store {
 	return &Store{
 		root: &node{children: make(map[string]*node)},
