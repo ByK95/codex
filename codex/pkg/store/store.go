@@ -35,6 +35,11 @@ type node struct {
 	entry    *StoreEntry // nil if not a leaf
 }
 
+var (
+	globalStore *Store
+	storeOnce   sync.Once
+)
+
 type Store struct {
 	mu   sync.RWMutex
 	root *node
