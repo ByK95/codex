@@ -393,8 +393,8 @@ func ResetThreats() {
 
 //export Store_SetPath
 func Store_SetPath(path *C.char) C.bool {
-	p := C.GoString(key)
-	err := store.GetStore().SetPath(p)
+	p := C.GoString(path)
+	err := store.SetPath(p)
 
 	if err != nil {
 		return false
