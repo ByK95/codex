@@ -16,6 +16,7 @@ import (
 	"codex/pkg/zoneconfig"
 	voronoi "codex/pkg/grid_voronoi"
 	"codex/pkg/crafting"
+	"codex/pkg/helpers"
 	"sync"
 )
 
@@ -235,34 +236,31 @@ func EquipmentIsItemEquipped(slotType *C.char, itemID *C.char) C.bool {
 	return C.bool(em.IsItemEquipped(C.GoString(slotType), C.GoString(itemID)))
 }
 
-//export EquipmentResetIterator
-func EquipmentResetIterator() C.bool {
+//export InitGetAllEquippedItemsIter
+func InitGetAllEquipmentItemsIter() C.bool {
 	if em == nil {
 		return false
 	}
-	em.ResetIterator()
+	em.InitGetAllEquippedItemsIter()
 	return true
 }
 
-//export EquipmentNextEquippedItem
-func EquipmentNextEquippedItem() *C.char {
+//export InitGetAllEquipmentSlotsIter
+func InitGetAllEquipmentSlotsIter() C.bool {
+	if em == nil {
+		return false
+	}
+	em.InitGetAllSlotsIter()
+	return true
+}
+
+//export EquipmentNext
+func EquipmentNext() *C.char {
 	if em == nil {
 		return C.CString("")
 	}
-	item := em.NextEquippedItem()
-	if item == "" {
-		return C.CString("")
-	}
+	item := em.Next()
 	return C.CString(item)
-}
-
-//export EquipmentReset
-func EquipmentReset() C.bool {
-	if em == nil {
-		return false
-	}
-	em.Reset()
-	return true
 }
 
 //export EquipmentClearSlot
@@ -573,6 +571,24 @@ func Crafting_GetFirstRequirement(managerName *C.char, craftID *C.char) *C.char 
 	}
 
 	return C.CString(c.Requirements[0].ID)
+}
+
+//export Helpers_GetUpgradeSelections
+func Helpers_GetUpgradeSelections(count C.int) C.bool {
+	if em == nil {
+		return false
+	}
+	helpers.GetUpgradeSelections(int(count))
+	return true
+}
+
+//export Helpers_GetUpgradeSelections
+func Helpers_Next() *C.char {
+	if em == nil {
+		return C.CString("")
+	}
+	item := helpers.GetNextSelections()
+	return C.CString(item)
 }
 
 
