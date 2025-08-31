@@ -236,7 +236,7 @@ func EquipmentIsItemEquipped(slotType *C.char, itemID *C.char) C.bool {
 	return C.bool(em.IsItemEquipped(C.GoString(slotType), C.GoString(itemID)))
 }
 
-//export InitGetAllEquippedItemsIter
+//export InitGetAllEquipmentItemsIter
 func InitGetAllEquipmentItemsIter() C.bool {
 	if em == nil {
 		return false
@@ -582,7 +582,7 @@ func Helpers_GetUpgradeSelections(count C.int) C.bool {
 	return true
 }
 
-//export Helpers_GetUpgradeSelections
+//export Helpers_Next
 func Helpers_Next() *C.char {
 	if em == nil {
 		return C.CString("")
