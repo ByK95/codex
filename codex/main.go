@@ -591,5 +591,21 @@ func Helpers_Next() *C.char {
 	return C.CString(item)
 }
 
+//export Store_InitGetFullKeysIter
+func Store_InitGetFullKeysIter(prefix *C.char) C.bool {
+	p := C.GoString(prefix)
+	store.InitGetFullKeysIter(p)
+	return true
+}
+
+//export Store_Next
+func Store_Next() *C.char {
+	if em == nil {
+		return C.CString("")
+	}
+	item := store.Next()
+	return C.CString(item)
+}
+
 
 func main() {}

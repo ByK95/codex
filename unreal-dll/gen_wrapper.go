@@ -221,7 +221,9 @@ func getFunctionCategory(fName string) string{
 
 func parseHeaderLine(line string) (Func, bool) {
 	// Updated regex to handle the actual generated header format
-	re := regexp.MustCompile(`extern __declspec\(dllexport\)\s+([^\s]+)\s+([^\s(]+)\(([^)]*)\);`)
+	re := regexp.MustCompile(
+		`extern __declspec\(dllexport\)\s+(.+?)\s+([^\s(]+)\(([^)]*)\);`,
+	)
 	matches := re.FindStringSubmatch(line)
 	if len(matches) != 4 {
 		return Func{}, false

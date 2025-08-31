@@ -1,6 +1,7 @@
 package store
 
 import (
+	"codex/pkg/iterator"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -12,6 +13,7 @@ import (
 )
 
 type ValueType int
+var iter *iterator.Iterator[string]
 
 const (
 	IntType ValueType = iota
@@ -408,3 +410,15 @@ func (s *Store) LoadFromText(text string) error {
 	return nil
 }
 
+func InitGetFullKeysIter(prefix string){
+	keys := GetStore().FullKeys(prefix)
+	iter = iterator.NewIterator(keys)
+}
+
+func Next() string{
+	if iter == nil {
+		return ""
+	}
+	val, _ := iter.Next()
+	return val
+}
