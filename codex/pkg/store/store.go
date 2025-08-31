@@ -65,6 +65,16 @@ func NewStore(path string) *Store {
 	}
 }
 
+// SetPath initializes or updates the global store with a new path
+func SetPath(path string) error {
+	if globalStore != nil && globalStore.path != path {
+		GetStore().path = path
+		err := GetStore().Load()
+		return err
+	}
+	return nil
+}
+
 func (s *Store) getOrCreateNode(key string) *node {
 	cur := s.root
 	parts := strings.Split(key, ".")

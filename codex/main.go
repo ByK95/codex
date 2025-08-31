@@ -391,7 +391,16 @@ func ResetThreats() {
 	threat.GetManager().Reset()
 }
 
-// ---- Int ----
+//export Store_SetPath
+func Store_SetPath(path *C.char) C.bool {
+	p := C.GoString(key)
+	err := store.GetStore().SetPath(p)
+
+	if err != nil {
+		return false
+	}
+	return true
+}
 
 //export Store_SetInt
 func Store_SetInt(key *C.char, val C.longlong) {
