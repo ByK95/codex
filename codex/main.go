@@ -241,7 +241,7 @@ func InitGetAllEquipmentItemsIter() C.bool {
 	if em == nil {
 		return false
 	}
-	em.InitGetAllEquippedItemsIter()
+	equipment.InitGetAllEquippedItemsIter()
 	return true
 }
 
@@ -250,7 +250,7 @@ func InitGetAllEquipmentSlotsIter() C.bool {
 	if em == nil {
 		return false
 	}
-	em.InitGetAllSlotsIter()
+	equipment.InitGetAllSlotsIter()
 	return true
 }
 
@@ -259,7 +259,7 @@ func EquipmentNext() *C.char {
 	if em == nil {
 		return C.CString("")
 	}
-	item := em.Next()
+	item := equipment.Next()
 	return C.CString(item)
 }
 
