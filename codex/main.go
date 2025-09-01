@@ -469,7 +469,7 @@ func Storage_Save() *C.char {
 	return ""
 }
 
-//export Store_Load
+//export Storage_Load
 func Storage_Load() *C.char {
 	if err := storage.SM().LoadAll(); err != nil {
 		return C.CString(err.Error())
