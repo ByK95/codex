@@ -8,7 +8,7 @@ import (
 )
 
 func TestStoreBasicOperations(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	// Int
 	s.SetInt("currency.gold", 100)
@@ -39,20 +39,22 @@ func TestStorePersistence(t *testing.T) {
 	tmpFile := "test_json"
 	defer os.Remove(tmpFile)
 
-	s := NewStore(tmpFile)
+	s := NewStore()
 	s.SetInt("currency.gold", 200)
 	s.SetFloat("player.speed", 1.23)
 	s.SetBool("quest.completed", false)
 	s.SetString("player.name", "TestPlayer")
 	s.SetInt("player.progress.level", 7) // nested key
 
-	if err := s.Save(); err != nil {
+
+	msg, err := s.Save()
+	if err != nil {
 		t.Fatalf("Save failed: %v", err)
 	}
 
 	// Create new store and load
-	s2 := NewStore(tmpFile)
-	if err := s2.Load(); err != nil {
+	s2 := NewStore()
+	if err := s2.Load(msg); err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
 
@@ -75,7 +77,7 @@ func TestStorePersistence(t *testing.T) {
 }
 
 func TestOverwriteValues(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	s.SetInt("val", 10)
 	s.SetInt("val", 20)
@@ -91,7 +93,7 @@ func TestOverwriteValues(t *testing.T) {
 }
 
 func TestTypeMismatchReturnsDefault(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	s.SetInt("val", 42)
 	if v := s.GetFloat("val"); v != 0 {
@@ -106,7 +108,7 @@ func TestTypeMismatchReturnsDefault(t *testing.T) {
 }
 
 func TestNonExistentKeysReturnDefault(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	if v := s.GetInt("does.not.exist"); v != 0 {
 		t.Errorf("expected 0 for missing int key, got %d", v)
@@ -123,16 +125,14 @@ func TestNonExistentKeysReturnDefault(t *testing.T) {
 }
 
 func TestSaveAndLoadEmptyStore(t *testing.T) {
-	tmpFile := "empty_store.json"
-	defer os.Remove(tmpFile)
-
-	s := NewStore(tmpFile)
-	if err := s.Save(); err != nil {
+	s := NewStore()
+	msg, err := s.Save()
+	if err != nil {
 		t.Fatalf("Save failed on empty store: %v", err)
 	}
 
-	s2 := NewStore(tmpFile)
-	if err := s2.Load(); err != nil {
+	s2 := NewStore()
+	if err := s2.Load(msg); err != nil {
 		t.Fatalf("Load failed on empty store: %v", err)
 	}
 
@@ -146,25 +146,25 @@ func TestPersistenceOverwrite(t *testing.T) {
 	tmpFile := "overwrite_store.json"
 	defer os.Remove(tmpFile)
 
-	s := NewStore(tmpFile)
+	s := NewStore()
 	s.SetInt("currency.gold", 50)
-	_ = s.Save()
+	msg, _ := s.Save()
 
 	// Overwrite
-	s2 := NewStore(tmpFile)
-	_ = s2.Load()
+	s2 := NewStore()
+	_ = s2.Load(msg)
 	s2.SetInt("currency.gold", 999)
-	_ = s2.Save()
+	msg2, _ := s2.Save()
 
-	s3 := NewStore(tmpFile)
-	_ = s3.Load()
+	s3 := NewStore()
+	_ = s3.Load(msg2)
 	if v := s3.GetInt("currency.gold"); v != 999 {
 		t.Errorf("expected 999 after overwrite and reload, got %d", v)
 	}
 }
 
 func TestMultipleTypesSameKey(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	s.SetInt("key", 100)
 	s.SetString("key", "string-value")
@@ -176,16 +176,8 @@ func TestMultipleTypesSameKey(t *testing.T) {
 	}
 }
 
-func TestFileNotFoundLoad(t *testing.T) {
-	s := NewStore("non_existent_file.json")
-	err := s.Load()
-	if err == nil {
-		t.Errorf("expected error when loading non-existent file, got nil")
-	}
-}
-
 func TestKeys(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	// Setup nested structure
 	s.SetInt("player.progress.level", 7)
@@ -235,7 +227,7 @@ func TestKeys(t *testing.T) {
 }
 
 func TestStoreFullKeys(t *testing.T) {
-    s := NewStore("test.json")
+    s := NewStore()
 
     // Insert some values
     s.SetString("player.name", "TestPlayer")
@@ -299,7 +291,7 @@ func TestLoadFromText(t *testing.T) {
 		"quest.completed": {"t": 2, "v": false}
 	}`
 
-	s := NewStore(".")
+	s := NewStore()
 	err := s.LoadFromText(text)
 	if err != nil {
 		t.Fatalf("LoadFromText failed: %v", err)
@@ -348,7 +340,7 @@ func TestRandomSelection(t *testing.T) {
 		"galactic_draw.7.chance": {"t": 0, "v": 1}
 	}`
 
-	s := NewStore(".")
+	s := NewStore()
 	err := s.LoadFromText(text)
 
 	if err != nil {
@@ -390,7 +382,7 @@ func TestRandomSelection(t *testing.T) {
 }
 
 func TestStore_Clear(t *testing.T) {
-	s := NewStore(".")
+	s := NewStore()
 	s.SetString("user.alice.name", "Alice")
 	s.SetString("user.alice.age", "30")
 	s.SetString("user.bob.name", "Bob")

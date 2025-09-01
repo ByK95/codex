@@ -1,8 +1,9 @@
 package crafting
 
 import (
+	"codex/pkg/storage"
 	"encoding/json"
-	"os"
+	"fmt"
 	"sync"
 )
 
@@ -25,30 +26,36 @@ type Manager struct {
 	requireIndex map[string][]string
 }
 
-// Load from JSON
-func NewManager(path string) (*Manager, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
+func init() {
+    // Register load and save functions
+    storage.SM().BindFuncs("crafting", LoadManagers, nil)
+}
 
-	var items []Craftable
-	if err := json.Unmarshal(data, &items); err != nil {
-		return nil, err
-	}
+func LoadManagers(data json.RawMessage) error {
+    var loadedManagers  map[string][]Craftable
+    if err := json.Unmarshal(data, &loadedManagers); err != nil {
+        return fmt.Errorf("failed to unmarshal users: %w", err)
+    }
+    
+    for k, v := range loadedManagers {
+        m := NewManager()
+		for _, c := range v {
+			m.craftables[c.ID] = c
+			for _, req := range c.Requirements {
+				m.requireIndex[req.ID] = append(m.requireIndex[req.ID], c.ID)
+			}
+		}
+		Register(k, m)
+    }
+    
+    return nil
+}
 
-	m := &Manager{
+func NewManager() *Manager {
+	return &Manager{
 		craftables:   make(map[string]Craftable),
 		requireIndex: make(map[string][]string),
 	}
-
-	for _, c := range items {
-		m.craftables[c.ID] = c
-		for _, req := range c.Requirements {
-			m.requireIndex[req.ID] = append(m.requireIndex[req.ID], c.ID)
-		}
-	}
-	return m, nil
 }
 
 // Forward lookup
@@ -76,15 +83,10 @@ var (
 )
 
 // Register new manager under a namespace
-func Register(name string, path string) int {
-	m, err := NewManager(path)
-	if err != nil {
-		return -1
-	}
-
+func Register(name string, manager *Manager) int {
 	mu.Lock()
 	defer mu.Unlock()
-	registry[name] = m
+	registry[name] = manager
 	return 1
 }
 

@@ -2,11 +2,11 @@ package store
 
 import (
 	"codex/pkg/iterator"
+	"codex/pkg/storage"
 	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -45,34 +45,33 @@ var (
 type Store struct {
 	mu   sync.RWMutex
 	root *node
-	path string
 	rng *rand.Rand
 }
 
 // GetStore returns the singleton Store instance, creating it if needed
 func GetStore() *Store {
 	once.Do(func() {
-		globalStore = NewStore("./store.json")
+		globalStore = NewStore()
 	})
 	return globalStore
 }
 
-func NewStore(path string) *Store {
-	return &Store{
-		root: &node{children: make(map[string]*node)},
-		path: path,
-		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
+func init() {
+	st := GetStore()
+	storage.SM().BindFuncs(
+		"store",
+		st.Load,
+		func() (any, error) {
+			return st.Save()
+		},
+	)
 }
 
-// SetPath initializes or updates the global store with a new path
-func SetPath(path string) error {
-	if globalStore != nil && globalStore.path != path {
-		GetStore().path = path
-		err := GetStore().Load()
-		return err
+func NewStore() *Store {
+	return &Store{
+		root: &node{children: make(map[string]*node)},
+		rng: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	return nil
 }
 
 func (s *Store) getOrCreateNode(key string) *node {
@@ -328,28 +327,23 @@ func flatten(prefix string, n *node, out map[string]StoreEntry) {
 	}
 }
 
-func (s *Store) Save() error {
+func (s *Store) Save() (json.RawMessage, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	flat := make(map[string]StoreEntry)
 	flatten("", s.root, flat)
 
-	data, err := json.MarshalIndent(flat, "", "  ")
+	data, err := json.Marshal(flat)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return os.WriteFile(s.path, data, 0644)
+	return data, nil
 }
 
-func (s *Store) Load() error {
+func (s *Store) Load(data json.RawMessage) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	data, err := os.ReadFile(s.path)
-	if err != nil {
-		return err
-	}
 
 	raw := make(map[string]StoreEntry)
 	if err := json.Unmarshal(data, &raw); err != nil {

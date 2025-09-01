@@ -18,6 +18,7 @@ import (
 	"codex/pkg/crafting"
 	"codex/pkg/helpers"
 	"sync"
+	"codex/pkg/storage"
 )
 
 var (
@@ -391,17 +392,6 @@ func ResetThreats() {
 	threat.GetManager().Reset()
 }
 
-//export Store_SetPath
-func Store_SetPath(path *C.char) C.bool {
-	p := C.GoString(path)
-	err := store.SetPath(p)
-
-	if err != nil {
-		return false
-	}
-	return true
-}
-
 //export Store_SetInt
 func Store_SetInt(key *C.char, val C.longlong) {
 	store.GetStore().SetInt(C.GoString(key), int64(val))
@@ -471,20 +461,29 @@ func Store_GetString(key *C.char) *C.char {
 
 // ---- Persistence ----
 
-//export Store_Save
-func Store_Save() C.int {
-	if err := store.GetStore().Save(); err != nil {
-		return -1
+//export Storage_Save
+func Storage_Save() *C.char {
+	if err := storage.SM().SaveAll(); err != nil {
+		return C.CString(err.Error())
 	}
-	return 0
+	return ""
 }
 
 //export Store_Load
-func Store_Load() C.int {
-	if err := store.GetStore().Load(); err != nil {
-		return -1
+func Storage_Load() *C.char {
+	if err := storage.SM().LoadAll(); err != nil {
+		return C.CString(err.Error())
 	}
-	return 0
+	return ""
+}
+
+//export SetStorageManagerPath
+func SetStorageManagerPath(path *C.char) *C.char {
+	p := C.GoString(path)
+	if err := storage.SetStorageManagerPath(p); err != nil {
+		return C.CString(err.Error())
+	}
+	return ""
 }
 
 //export ZoneConfig_GetMaxNPC
@@ -524,14 +523,6 @@ func Voronoi_Init(width C.int, height C.int, numZones C.int, seed C.longlong) {
 //export Voronoi_ZoneAt
 func Voronoi_ZoneAt(x C.int, y C.int) C.int {
 	return C.int(voronoi.ZoneAt(int(x), int(y)))
-}
-
-//export Crafting_Register
-func Crafting_Register(name *C.char, path *C.char) C.int{
-	n := C.GoString(name)
-	p := C.GoString(path)
-	
-	return C.int(crafting.Register(n, p))
 }
 
 //export Crafting_Reset

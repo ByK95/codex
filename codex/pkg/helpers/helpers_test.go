@@ -2,45 +2,27 @@ package helpers
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"codex/pkg/crafting"
 	"codex/pkg/equipment"
 	"codex/pkg/store"
+	"encoding/json"
 )
 
-
-func writeTestFile(t *testing.T, content string) string {
-	tmpfile, err := os.CreateTemp("", "crafting_test_*.json")
-	assert.NoError(t, err)
-
-	_, err = tmpfile.Write([]byte(content))
-	assert.NoError(t, err)
-
-	err = tmpfile.Close()
-	assert.NoError(t, err)
-
-	return tmpfile.Name()
-}
-
 func TestHelpers(t *testing.T) {
-	var testJSON = `[
+	var testJSON = `{
+	"upgrades": [
 		{"id":"weapon.laser.2","requirements":[{"id":"weapon.laser","qty":1}]},
 		{"id":"weapon.laser.3","requirements":[{"id":"weapon.laser.2","qty":1}]},
-		{"id":"weapon.laser","requirements":[{"id":"","qty":0}]}
-	]`
-	path := writeTestFile(t, testJSON)
-	defer os.Remove(path)
+		{"id":"weapon.laser","requirements":[{"id":"","qty":0}]}]
+	}`
+	crafting.LoadManagers(json.RawMessage(testJSON))
 	s := store.GetStore()
 	s.SetString("weapon.laser.slot_type", "weapon")
 	s.SetString("weapon.laser.2.slot_type", "weapon")
 	s.SetString("weapon.laser.3.slot_type", "weapon")
 	
-
-	// Register manager
-	crafting.Register(upgrades, path)
-
 	equipment.GetManager().DefineSlot("weapon", 1)
 
 	upgrades := GetUpgrades()
@@ -63,17 +45,17 @@ func TestHelpers(t *testing.T) {
 }
 
 func TestHelperIterators(t *testing.T) {
-	var testJSON = `[
+	var testJSON = `{
+	"upgrades": [
 		{"id":"weapon.laser.2","requirements":[{"id":"weapon.laser","qty":1}]},
 		{"id":"weapon.laser.3","requirements":[{"id":"weapon.laser.2","qty":1}]},
 		{"id":"weapon.laser","requirements":[{"id":"","qty":0}]},
 		{"id":"captain.kaori","requirements":[{"id":"","qty":0}]},
 		{"id":"extra.radio","requirements":[{"id":"","qty":0}]},
 		{"id":"extra.gps","requirements":[{"id":"","qty":0}]},
-		{"id":"weapon.rocket_launcher","requirements":[{"id":"","qty":0}]}
-	]`
-	path := writeTestFile(t, testJSON)
-	defer os.Remove(path)
+		{"id":"weapon.rocket_launcher","requirements":[{"id":"","qty":0}]}]
+	}`
+	crafting.LoadManagers(json.RawMessage(testJSON))
 	s := store.GetStore()
 	s.SetString("weapon.laser.slot_type", "weapon")
 	s.SetString("weapon.rocket_launcher.slot_type", "weapon")
@@ -82,10 +64,6 @@ func TestHelperIterators(t *testing.T) {
 	s.SetString("captain.kaori.slot_type", "captain")
 	s.SetString("extra.radio.slot_type", "extra")
 	
-
-	// Register manager
-	crafting.Register(upgrades, path)
-
 	equipment.GetManager().DefineSlot("weapon", 1)
 	equipment.GetManager().DefineSlot("captain", 1)
 	equipment.GetManager().DefineSlot("extra", 1)
