@@ -250,6 +250,32 @@ func (s *Store) FullKeys(prefix string) []string {
     return keys
 }
 
+// Clear removes all keys (and their subkeys) under the given prefix
+func (s *Store) Clear(prefix string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if prefix == "" {
+		// clear everything
+		s.root = &node{children: make(map[string]*node)}
+		return
+	}
+
+	parts := strings.Split(prefix, ".")
+	cur := s.root
+	for i := 0; i < len(parts)-1; i++ {
+		next := cur.children[parts[i]]
+		if next == nil {
+			return // prefix doesn't exist
+		}
+		cur = next
+	}
+
+	// delete the last part
+	delete(cur.children, parts[len(parts)-1])
+}
+
+
 func (s *Store) RandomSelect(prefix string) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

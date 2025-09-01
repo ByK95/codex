@@ -607,6 +607,13 @@ func Store_InitGetFullKeysIter(prefix *C.char) C.bool {
 	return true
 }
 
+//export Store_Clear
+func Store_Clear(prefix *C.char) C.bool {
+	p := C.GoString(prefix)
+	store.GetStore().Clear(p)
+	return true
+}
+
 //export Store_Next
 func Store_Next() *C.char {
 	if em == nil {

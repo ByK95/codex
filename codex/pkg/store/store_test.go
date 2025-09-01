@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStoreBasicOperations(t *testing.T) {
@@ -386,4 +387,38 @@ func TestRandomSelection(t *testing.T) {
 	for k, v := range counts {
 		fmt.Printf("%-25s %d\n", k, v)
 	}
+}
+
+func TestStore_Clear(t *testing.T) {
+	s := NewStore(".")
+	s.SetString("user.alice.name", "Alice")
+	s.SetString("user.alice.age", "30")
+	s.SetString("user.bob.name", "Bob")
+
+	// Sanity check
+	assert.Equal(t, "Alice", s.GetString("user.alice.name"))
+	assert.Equal(t, "Bob", s.GetString("user.bob.name"))
+
+	// Clear subtree under prefix
+	s.Clear("user.alice")
+
+	assert.Equal(t, "", s.GetString("user.alice.name"))
+	assert.Equal(t, "", s.GetString("user.alice.age"))
+	assert.Equal(t, "Bob", s.GetString("user.bob.name"))
+
+
+	s.SetString("user.alice.name", "Alice")
+	s.SetString("user.alice.age", "30")
+	s.SetString("user.bob.name", "Bob")
+
+	// Clear everything
+	s.Clear("")
+	assert.Equal(t, "", s.GetString("user.bob.name"))
+
+	s.SetString("user.alice.name", "Alice")
+	s.SetString("user.alice.age", "30")
+	s.SetString("user.bob.name", "Bob")
+	s.Clear("user")
+
+	assert.Equal(t, "", s.GetString("user.alice.name"))
 }
