@@ -55,12 +55,13 @@ func TestSnapshotJSON(t *testing.T) {
 	SetBool("ready", true)
 	SetString("version", "2.1.0")
 
-	jsonStr := SnapshotJSON()
+	jsonStr, err := SnapshotJSON()
 	assert.NotEmpty(t, jsonStr)
+	assert.NoError(t, err)
 
 	// Parse back to check values
 	var parsed map[string]interface{}
-	err := json.Unmarshal([]byte(jsonStr), &parsed)
+	err = json.Unmarshal(jsonStr.(json.RawMessage), &parsed)
 	assert.NoError(t, err)
 
 	assert.EqualValues(t, 10, parsed["requests"])
@@ -108,7 +109,7 @@ func TestLoadFromJSON(t *testing.T) {
 		"string_metric": "hello"
 	}`
 
-	err := LoadFromJSON(jsonData)
+	err := LoadFromJSON(json.RawMessage(jsonData))
 	assert.NoError(t, err, "LoadFromJSON should not return error")
 
 	assert.Equal(t, int64(42), GetInt("int_metric"))
@@ -119,6 +120,6 @@ func TestLoadFromJSON(t *testing.T) {
 
 func TestLoadFromJSONInvalid(t *testing.T) {
 	ClearAll()
-	err := LoadFromJSON(`invalid json`)
+	err := LoadFromJSON(json.RawMessage(`invalid json`))
 	assert.Error(t, err, "Invalid JSON should return error")
 }

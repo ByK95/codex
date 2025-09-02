@@ -466,7 +466,7 @@ func Storage_Save() *C.char {
 	if err := storage.SM().SaveAll(); err != nil {
 		return C.CString(err.Error())
 	}
-	return ""
+	return C.CString("")
 }
 
 //export Storage_Load
@@ -474,7 +474,7 @@ func Storage_Load() *C.char {
 	if err := storage.SM().LoadAll(); err != nil {
 		return C.CString(err.Error())
 	}
-	return ""
+	return C.CString("")
 }
 
 //export SetStorageManagerPath
@@ -483,7 +483,7 @@ func SetStorageManagerPath(path *C.char) *C.char {
 	if err := storage.SetStorageManagerPath(p); err != nil {
 		return C.CString(err.Error())
 	}
-	return ""
+	return C.CString("")
 }
 
 //export ZoneConfig_GetMaxNPC
