@@ -41,6 +41,7 @@ func (h HandlerFunc) Save() (any, error) {
 type StorageManager struct {
     mu       sync.RWMutex
     handlers map[string]Handler
+    handlerReadonly map[string]bool
     filename string
     autoSave bool
     dirty    bool
@@ -62,6 +63,7 @@ func SM() *StorageManager {
 	once.Do(func() {
 		manager = &StorageManager{
         handlers: make(map[string]Handler),
+        handlerReadonly: make(map[string]bool),
         filename: "",
         autoSave: false,
         dirty:    false,
@@ -83,6 +85,7 @@ func (s *StorageManager) BindFuncs(key string, loadFunc func(json.RawMessage) er
         LoadFunc: loadFunc,
         SaveFunc: saveFunc,
     })
+    s.handlerReadonly[key] = (loadFunc != nil && saveFunc == nil)
 }
 
 // LoadAll reads the JSON file and calls load handlers for each key
@@ -90,6 +93,39 @@ func (s *StorageManager) LoadAll() error {
     s.mu.Lock()
     defer s.mu.Unlock()
     return s.loadAllUnsafe()
+}
+
+// ReloadAll explicitly reloads all handlers that have a LoadFunc
+func (s *StorageManager) ReloadAll() error {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+
+    file, err := os.ReadFile(s.filename)
+    if err != nil {
+        if os.IsNotExist(err) {
+            return nil // file doesn't exist yet
+        }
+        return fmt.Errorf("failed to read %s: %w", s.filename, err)
+    }
+    if len(file) == 0 {
+        return nil
+    }
+
+    raw := make(map[string]json.RawMessage)
+    if err := json.Unmarshal(file, &raw); err != nil {
+        return fmt.Errorf("failed to unmarshal %s: %w", s.filename, err)
+    }
+
+    for key, handler := range s.handlers {
+        if s.handlerReadonly[key] { // only reload handlers that have LoadFunc
+            if rawData, exists := raw[key]; exists {
+                if err := handler.Load(rawData); err != nil {
+                    fmt.Printf("Warning: failed to reload key %s: %v\n", key, err)
+                }
+            }
+        }
+    }
+    return nil
 }
 
 func (s *StorageManager) loadAllUnsafe() error {

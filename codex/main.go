@@ -333,8 +333,9 @@ func Metrics_GetString(name *C.char) *C.char {
 
 //export Metrics_SnapshotJSON
 func Metrics_SnapshotJSON() *C.char {
-	s, err := metrics.SnapshotJSON()
-	return C.CString(s)
+	s, _ := metrics.SnapshotJSON()
+	str := string(s.([]byte))
+	return C.CString(str)
 }
 
 //export Metrics_FreeCString
@@ -464,6 +465,14 @@ func Storage_Save() *C.char {
 //export Storage_Load
 func Storage_Load() *C.char {
 	if err := storage.SM().LoadAll(); err != nil {
+		return C.CString(err.Error())
+	}
+	return C.CString("")
+}
+
+//export Storage_ReloadAll
+func Storage_ReloadAll() *C.char {
+	if err := storage.SM().ReloadAll(); err != nil {
 		return C.CString(err.Error())
 	}
 	return C.CString("")
