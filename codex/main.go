@@ -333,7 +333,7 @@ func Metrics_GetString(name *C.char) *C.char {
 
 //export Metrics_SnapshotJSON
 func Metrics_SnapshotJSON() *C.char {
-	s := metrics.SnapshotJSON()
+	s, err := metrics.SnapshotJSON()
 	return C.CString(s)
 }
 
@@ -350,14 +350,6 @@ func Metrics_ClearAll() {
 //export Metrics_ClearPrefix
 func Metrics_ClearPrefix(prefix *C.char) {
 	metrics.ClearPrefix(C.GoString(prefix))
-}
-
-//export Metrics_LoadFromJSON
-func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
-	if err := metrics.LoadFromJSON(C.GoString(jsonStr)); err != nil {
-		return 1 // error
-	}
-	return 0 // success
 }
 
 // Loot functions are not added reason being in order to pass the list into unreal and back needs 3 different conversations which doesn't worth it imo also taken a look into flatbuffers which offer nice conversations third will be necessary for blueprints again so given up atm but leaving the logic here
@@ -487,32 +479,22 @@ func SetStorageManagerPath(path *C.char) *C.char {
 }
 
 //export ZoneConfig_GetMaxNPC
-func ZoneConfig_GetMaxNPC( path *C.char, zoneID *C.char) C.int {
+func ZoneConfig_GetMaxNPC(zoneID *C.char) C.int {
 	id := C.GoString(zoneID)
-	p := C.GoString(path)
-	return C.int(zoneconfig.GetManager(p).GetMaxNPC(id))
+	return C.int(zoneconfig.GetManager().GetMaxNPC(id))
 }
 
 //export ZoneConfig_GetSpawnChance
-func ZoneConfig_GetSpawnChance(path *C.char, zoneID *C.char) C.float {
+func ZoneConfig_GetSpawnChance(zoneID *C.char) C.float {
 	id := C.GoString(zoneID)
-	p := C.GoString(path)
-	return C.float(zoneconfig.GetManager(p).GetSpawnChance(id))
+	return C.float(zoneconfig.GetManager().GetSpawnChance(id))
 }
 
 //export ZoneConfig_GetRandomNPCType
-func ZoneConfig_GetRandomNPCType(path *C.char, zoneID *C.char) *C.char {
+func ZoneConfig_GetRandomNPCType(zoneID *C.char) *C.char {
 	id := C.GoString(zoneID)
-	p := C.GoString(path)
-	npc := zoneconfig.GetManager(p).GetRandomNPCType(id)
+	npc := zoneconfig.GetManager().GetRandomNPCType(id)
 	return C.CString(npc)
-}
-
-//export ZoneConfig_Reload
-func ZoneConfig_Reload(path *C.char) C.int {
-	p := C.GoString(path)
-	err := zoneconfig.GetManager(p).Load()
-	return C.int(err)
 }
 
 //export Voronoi_Init

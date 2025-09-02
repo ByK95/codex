@@ -1,9 +1,10 @@
 package zoneconfig
 
 import (
+	"codex/pkg/storage"
 	"encoding/json"
+	"fmt"
 	"math/rand"
-	"os"
 	"sync"
 )
 
@@ -17,41 +18,36 @@ type Zone struct {
 type ZoneConfigManager struct {
 	mu    sync.RWMutex
 	zones map[string]*Zone
-	path  string
 }
 
 var manager *ZoneConfigManager
 var once sync.Once
 
-func GetManager(path string) *ZoneConfigManager {
+func init() {
+    // Register load and save functions
+    storage.SM().BindFuncs("zones", Load, nil)
+}
+
+func GetManager() *ZoneConfigManager {
 	once.Do(func() {
 		manager = &ZoneConfigManager{
 			zones: make(map[string]*Zone),
-			path:  path,
 		}
-		_ = manager.Load()
 	})
 	return manager
 }
 
-func (m *ZoneConfigManager) Load() int32 {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	data, err := os.ReadFile(m.path)
-	if err != nil {
-		return int32(-1)
-	}
-
+func Load(data json.RawMessage) error {
 	var zones []*Zone
 	if err := json.Unmarshal(data, &zones); err != nil {
-		return int32(-2)
+		return fmt.Errorf("failed to unmarshal zones: %w", err)
 	}
 
-	m.zones = make(map[string]*Zone)
+	GetManager().zones = make(map[string]*Zone)
 	for _, z := range zones {
-		m.zones[z.ZoneID] = z
+		GetManager().zones[z.ZoneID] = z
 	}
-	return int32(1)
+	return nil
 }
 
 func (m *ZoneConfigManager) GetMaxNPC(zoneID string) int32 {

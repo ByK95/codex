@@ -34,7 +34,7 @@ func init() {
 func LoadManagers(data json.RawMessage) error {
     var loadedManagers  map[string][]Craftable
     if err := json.Unmarshal(data, &loadedManagers); err != nil {
-        return fmt.Errorf("failed to unmarshal users: %w", err)
+        return fmt.Errorf("failed to unmarshal crafting: %w", err)
     }
     
     for k, v := range loadedManagers {

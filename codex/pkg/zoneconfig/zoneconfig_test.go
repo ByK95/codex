@@ -1,19 +1,10 @@
 package zoneconfig
 
 import (
-	"os"
 	"testing"
-
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
 )
-
-func createTestFile(t *testing.T, content string) string {
-	tmpFile := "test_zones.json"
-	err := os.WriteFile(tmpFile, []byte(content), 0644)
-	assert.NoError(t, err)
-	t.Cleanup(func() { _ = os.Remove(tmpFile) })
-	return tmpFile
-}
 
 func TestZoneConfigManager_LoadAndGetters(t *testing.T) {
 	jsonContent := `
@@ -32,9 +23,8 @@ func TestZoneConfigManager_LoadAndGetters(t *testing.T) {
 	}
 ]
 `
-	tmpFile := createTestFile(t, jsonContent)
-
-	manager := GetManager(tmpFile)
+	Load(json.RawMessage(jsonContent))
+	manager := GetManager()
 
 	// Test MaxCount
 	assert.Equal(t, int32(10), manager.GetMaxNPC("zone_1"))
@@ -70,16 +60,13 @@ func TestZoneConfigManager_LoadZone(t *testing.T) {
 		}
 	]
 	`
-	tmpFile := createTestFile(t, jsonContent)
-	manager := GetManager(tmpFile)
-	manager.Load()
+	manager := GetManager()
+	Load(json.RawMessage(jsonContent))
 
 	assert.Equal(t, int32(10), manager.GetMaxNPC("1"))
 }
 
 func TestZoneConfigManager_LoadInvalidFile(t *testing.T) {
-	tmpFile := createTestFile(t, `{ invalid json }`)
-	manager := &ZoneConfigManager{path: tmpFile}
-	err := manager.Load()
-	assert.Equal(t, err, int32(-2))
+	err := Load(json.RawMessage(`{ invalid json }`))
+	assert.NotNil(t, err)
 }
