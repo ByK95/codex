@@ -386,7 +386,7 @@ func ResetThreats() {
 }
 
 //export Store_RandomSelect
-func Store_RandomSelect(prefix *C.char) {
+func Store_RandomSelect(prefix *C.char) *C.char {
 	res := store.GetStore().RandomSelect(C.GoString(prefix))
 	return C.CString(res)
 }
