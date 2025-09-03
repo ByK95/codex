@@ -391,7 +391,7 @@ func Store_RandomSelect(prefix *C.char) {
 	return C.CString(res)
 }
 
-//export Store_RandomSelect
+//export Store_SetInt
 func Store_SetInt(key *C.char, val C.longlong) {
 	store.GetStore().SetInt(C.GoString(key), int64(val))
 }
