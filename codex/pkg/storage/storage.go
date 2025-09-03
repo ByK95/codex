@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 )
 
@@ -45,6 +44,7 @@ type StorageManager struct {
     filename string
     autoSave bool
     dirty    bool
+    lastRaw       map[string]json.RawMessage
 }
 
 var (
@@ -132,12 +132,14 @@ func (s *StorageManager) loadAllUnsafe() error {
     file, err := os.ReadFile(s.filename)
     if err != nil {
         if os.IsNotExist(err) {
+            s.lastRaw = make(map[string]json.RawMessage)
             return nil // file doesn't exist yet
         }
         return fmt.Errorf("failed to read %s: %w", s.filename, err)
     }
 
     if len(file) == 0 {
+        s.lastRaw = make(map[string]json.RawMessage)
         return nil // empty file
     }
 
@@ -146,6 +148,7 @@ func (s *StorageManager) loadAllUnsafe() error {
         return fmt.Errorf("failed to unmarshal %s: %w", s.filename, err)
     }
 
+    s.lastRaw = raw
     // Call load handlers for each key
     for key, handler := range s.handlers {
         if rawData, exists := raw[key]; exists {
@@ -167,14 +170,15 @@ func (s *StorageManager) SaveAll() error {
 }
 
 func (s *StorageManager) saveAllUnsafe() error {
-    // Ensure directory exists
-    if err := os.MkdirAll(filepath.Dir(s.filename), 0755); err != nil {
-        return fmt.Errorf("failed to create directory: %w", err)
-    }
-
     out := make(map[string]any)
     
-    // Call save handlers for each key
+    for key, raw := range s.lastRaw {
+        if s.handlerReadonly[key] || s.handlers[key] == nil {
+            out[key] = json.RawMessage(raw)
+        }
+    }
+
+    // overwrite / add writable keys from handlers
     for key, handler := range s.handlers {
         data, err := handler.Save()
         if err != nil {
@@ -190,16 +194,19 @@ func (s *StorageManager) saveAllUnsafe() error {
         return fmt.Errorf("failed to marshal data: %w", err)
     }
 
-    // Write to temporary file first, then rename (atomic operation)
     tempFile := s.filename + ".tmp"
     if err := os.WriteFile(tempFile, buf, 0644); err != nil {
         return fmt.Errorf("failed to write temp file: %w", err)
     }
-
     if err := os.Rename(tempFile, s.filename); err != nil {
-        os.Remove(tempFile) // cleanup
+        os.Remove(tempFile)
         return fmt.Errorf("failed to rename temp file: %w", err)
     }
+
+    // update cached raw
+    newRaw := make(map[string]json.RawMessage)
+    _ = json.Unmarshal(buf, &newRaw)
+    s.lastRaw = newRaw
 
     s.dirty = false
     return nil
