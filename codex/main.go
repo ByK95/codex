@@ -385,7 +385,13 @@ func ResetThreats() {
 	threat.GetManager().Reset()
 }
 
-//export Store_SetInt
+//export Store_RandomSelect
+func Store_RandomSelect(prefix *C.char) {
+	res := store.GetStore().RandomSelect(C.GoString(prefix))
+	return C.CString(res)
+}
+
+//export Store_RandomSelect
 func Store_SetInt(key *C.char, val C.longlong) {
 	store.GetStore().SetInt(C.GoString(key), int64(val))
 }
