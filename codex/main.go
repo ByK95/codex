@@ -541,18 +541,12 @@ func Crafting_GetFirstRequirement(managerName *C.char, craftID *C.char) *C.char 
 
 //export Helpers_GetUpgradeSelections
 func Helpers_GetUpgradeSelections(count C.int) C.bool {
-	if em == nil {
-		return false
-	}
 	helpers.GetUpgradeSelections(int(count))
 	return true
 }
 
 //export Helpers_Next
 func Helpers_Next() *C.char {
-	if em == nil {
-		return C.CString("")
-	}
 	item := helpers.GetNextSelections()
 	return C.CString(item)
 }
