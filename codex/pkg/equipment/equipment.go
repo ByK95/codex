@@ -300,3 +300,8 @@ func Next() string{
 	val, _ := equipmentIter.Next()
 	return val
 }
+
+func Clear(){
+	globalManager = NewEquipmentManager()
+	equipmentIter = nil
+}
