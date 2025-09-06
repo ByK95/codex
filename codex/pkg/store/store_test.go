@@ -264,6 +264,20 @@ func TestStoreFullKeys(t *testing.T) {
     }
 }
 
+func TestStoreFullKeysIter(t *testing.T) {
+    s := NewStore()
+	globalStore = s
+
+    // Insert some values
+    s.SetString("ship.starlance.slot_type", "ship")
+	s.SetString("ship.solar_wind.slot_type", "ship")
+
+	InitGetFullKeysIter("ship")
+
+	assert.Equal(t, "ship.starlance", Next())
+    assert.Equal(t, "ship.solar_wind", Next())
+}
+
 // helper to compare slices ignoring order
 func equalUnordered(a, b []string) bool {
     if len(a) != len(b) {

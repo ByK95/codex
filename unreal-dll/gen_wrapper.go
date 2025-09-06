@@ -44,10 +44,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "{{ .Category }}")
     static {{ .BpReturnType }} {{ .Name }}({{ .BpParams }});
 	{{- end }}
+	UFUNCTION(BlueprintCallable, Category = "DLL")
+    static void UnloadDLL();
 
 private:
     static bool LoadDLL();
-    static void UnloadDLL();
 };
 `
 
