@@ -414,6 +414,11 @@ func Store_GetBool(key *C.char) C.bool {
 	return C.bool(store.GetStore().GetBool(C.GoString(key)))
 }
 
+//export Store_ReleaseBool
+func Store_ReleaseBool(key *C.char) C.bool {
+	return C.bool(store.GetStore().ReleaseBool(C.GoString(key)))
+}
+
 // ---- String ----
 
 //export Store_SetString

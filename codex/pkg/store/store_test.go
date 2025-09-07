@@ -428,3 +428,22 @@ func TestStore_Clear(t *testing.T) {
 
 	assert.Equal(t, "", s.GetString("user.alice.name"))
 }
+
+func TestStoreReleaseBool(t *testing.T) {
+	s := NewStore()
+
+	// Case 1: value exists and is true
+	s.SetBool("quest.completed", true)
+	assert.True(t, s.ReleaseBool("quest.completed"), "should return true when releasing true value")
+	assert.False(t, s.GetBool("quest.completed"), "value should be reset to false after release")
+
+	// Case 2: value exists but already false
+	assert.False(t, s.ReleaseBool("quest.completed"), "should return false when value is already false")
+
+	// Case 3: key does not exist
+	assert.False(t, s.ReleaseBool("quest.missing"), "should return false for non-existent key")
+
+	// Case 4: wrong type (int instead of bool)
+	s.SetInt("quest.level", 5)
+	assert.False(t, s.ReleaseBool("quest.level"), "should return false for type mismatch")
+}

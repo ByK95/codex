@@ -157,6 +157,18 @@ func (s *Store) GetBool(key string) bool {
 	return false
 }
 
+func (s *Store) ReleaseBool(key string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if n := s.getNode(key); n != nil && n.entry != nil && n.entry.Type == BoolType{
+		if n.entry.Value.(bool) {
+			n.entry.Value = false
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Store) GetString(key string) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
