@@ -550,6 +550,12 @@ func Helpers_GetUpgradeSelections(count C.int) C.bool {
 	return true
 }
 
+//export Helpers_UpgrageItem
+func Helpers_UpgrageItem(itemID *C.char) C.bool {
+	itemid := C.GoString(itemID)
+	return C.bool(helpers.UpgrageItem(itemid))
+}
+
 //export Helpers_Next
 func Helpers_Next() *C.char {
 	item := helpers.GetNextSelections()
