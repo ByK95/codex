@@ -25,10 +25,17 @@ func GetUpgrades() []string {
 	equipments := equipment.GetManager().GetAllEquippedItems()
 
 	resultSet := make(map[string]struct{})
+	equippedSet := make(map[string]struct{}, len(equipments))
 
 	for _, itemID := range equipments {
+		equippedSet[itemID] = struct{}{}
 		craftables := crafter.FindByRequirement(itemID)
 		for _, c := range craftables {
+
+			if _, already := equippedSet[c.ID]; already {
+                continue
+            }
+
 			resultSet[c.ID] = struct{}{}
 		}
 	}
@@ -42,6 +49,10 @@ func GetUpgrades() []string {
 			if equipment.GetManager().GetSlotAvailability(slotType) == 0{
 				continue
 			}
+
+			if _, already := equippedSet[c.ID]; already {
+                continue
+            }
 
 			resultSet[c.ID] = struct{}{}
 		}

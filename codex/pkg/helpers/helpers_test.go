@@ -23,6 +23,7 @@ func TestHelpers(t *testing.T) {
 	s.SetString("weapon.laser.2.slot_type", "weapon")
 	s.SetString("weapon.laser.3.slot_type", "weapon")
 	
+	equipment.Clear()
 	equipment.GetManager().DefineSlot("weapon", 1)
 
 	upgrades := GetUpgrades()
@@ -64,6 +65,7 @@ func TestHelperIterators(t *testing.T) {
 	s.SetString("captain.kaori.slot_type", "captain")
 	s.SetString("extra.radio.slot_type", "extra")
 	
+	equipment.Clear()
 	equipment.GetManager().DefineSlot("weapon", 1)
 	equipment.GetManager().DefineSlot("captain", 1)
 	equipment.GetManager().DefineSlot("extra", 1)
@@ -75,4 +77,38 @@ func TestHelperIterators(t *testing.T) {
 	selection3 := GetNextSelections()
 	selection4 := GetNextSelections() // should be empty
 	fmt.Println("Selections:", selection1, selection2, selection3, selection4)
+}
+
+func TestGetUpgrades_ExcludesEquipped(t *testing.T) {
+	var testJSON = `{
+		"upgrades": [
+			{"id":"weapon.laser.2","requirements":[{"id":"weapon.laser","qty":1}]},
+			{"id":"weapon.laser.3","requirements":[{"id":"weapon.laser.2","qty":1}]},
+			{"id":"weapon.laser","requirements":[{"id":"","qty":0}]},
+			{"id":"captain.kaori","requirements":[{"id":"","qty":0}]}
+		]}`
+	crafting.LoadManagers(json.RawMessage(testJSON))
+	s := store.GetStore()
+	s.SetString("weapon.laser.slot_type", "weapon")
+	s.SetString("weapon.laser.2.slot_type", "weapon")
+	s.SetString("weapon.laser.3.slot_type", "weapon")
+	s.SetString("captain.kaori.slot_type", "captain")
+
+	// Define slots
+	equipment.Clear()
+	equipment.GetManager().DefineSlot("weapon", 1)
+	equipment.GetManager().DefineSlot("captain", 1)
+
+	// Equip "weapon.laser" directly
+	ok := equipment.GetManager().EquipItem("weapon", "weapon.laser")
+	assert.True(t, ok, "should be able to equip weapon.laser")
+
+	// Now GetUpgrades should NOT return "weapon.laser" again
+	upgrades := GetUpgrades()
+	for _, u := range upgrades {
+		assert.NotEqual(t, "weapon.laser", u, "already equipped item should not be returned")
+	}
+
+	// "weapon.laser.2" should still be a valid upgrade path
+	assert.Contains(t, upgrades, "weapon.laser.2")
 }
