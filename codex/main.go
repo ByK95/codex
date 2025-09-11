@@ -16,7 +16,9 @@ import (
 	"codex/pkg/zoneconfig"
 	voronoi "codex/pkg/grid_voronoi"
 	"codex/pkg/crafting"
+	"codex/pkg/helpers"
 	"sync"
+	"codex/pkg/storage"
 )
 
 var (
@@ -26,7 +28,6 @@ var (
 
 var draggedSlot = inventory.DraggedSlot{Empty: true}
 var inv *inventory.Inventory
-var em *equipment.EquipmentManager
 
 //export InventoryNew
 func InventoryNew(slotCount C.int) {
@@ -170,17 +171,9 @@ func InventoryIsSlotEmpty(slotIdx C.int) C.bool {
 	return C.bool(slot == nil || slot.Quantity == 0)
 }
 
-//export EquipmentNew
-func EquipmentNew() {
-	em = equipment.NewEquipmentManager()
-}
-
 //export EquipmentDefineSlot
 func EquipmentDefineSlot(slotType *C.char, maxSlots C.int) C.int {
-	if em == nil {
-		return 0
-	}
-	if em.DefineSlot(C.GoString(slotType), int(maxSlots)) {
+	if equipment.GetManager().DefineSlot(C.GoString(slotType), int(maxSlots)) {
 		return 1
 	}
 	return 0
@@ -188,10 +181,7 @@ func EquipmentDefineSlot(slotType *C.char, maxSlots C.int) C.int {
 
 //export EquipmentRemoveSlotDefinition
 func EquipmentRemoveSlotDefinition(slotType *C.char) C.int {
-	if em == nil {
-		return 0
-	}
-	if em.RemoveSlotDefinition(C.GoString(slotType)) {
+	if equipment.GetManager().RemoveSlotDefinition(C.GoString(slotType)) {
 		return 1
 	}
 	return 0
@@ -199,10 +189,7 @@ func EquipmentRemoveSlotDefinition(slotType *C.char) C.int {
 
 //export EquipmentEquipItem
 func EquipmentEquipItem(slotType *C.char, itemID *C.char) C.int {
-	if em == nil {
-		return 0
-	}
-	if em.EquipItem(C.GoString(slotType), C.GoString(itemID)) {
+	if equipment.GetManager().EquipItem(C.GoString(slotType), C.GoString(itemID)) {
 		return 1
 	}
 	return 0
@@ -210,10 +197,7 @@ func EquipmentEquipItem(slotType *C.char, itemID *C.char) C.int {
 
 //export EquipmentUnequipItem
 func EquipmentUnequipItem(slotType *C.char, itemID *C.char) C.int {
-	if em == nil {
-		return 0
-	}
-	if em.UnequipItem(C.GoString(slotType), C.GoString(itemID)) {
+	if equipment.GetManager().UnequipItem(C.GoString(slotType), C.GoString(itemID)) {
 		return 1
 	}
 	return 0
@@ -221,64 +205,48 @@ func EquipmentUnequipItem(slotType *C.char, itemID *C.char) C.int {
 
 //export EquipmentIsSlotFull
 func EquipmentIsSlotFull(slotType *C.char) C.bool {
-	if em == nil {
-		return false
-	}
-	return C.bool(em.IsSlotFull(C.GoString(slotType)))
+	return C.bool(equipment.GetManager().IsSlotFull(C.GoString(slotType)))
 }
 
 //export EquipmentIsItemEquipped
 func EquipmentIsItemEquipped(slotType *C.char, itemID *C.char) C.bool {
-	if em == nil {
-		return false
-	}
+	em := equipment.GetManager()
 	return C.bool(em.IsItemEquipped(C.GoString(slotType), C.GoString(itemID)))
 }
 
-//export EquipmentResetIterator
-func EquipmentResetIterator() C.bool {
-	if em == nil {
-		return false
-	}
-	em.ResetIterator()
+//export InitGetAllEquipmentItemsIter
+func InitGetAllEquipmentItemsIter() C.bool {
+	equipment.InitGetAllEquippedItemsIter()
 	return true
 }
 
-//export EquipmentNextEquippedItem
-func EquipmentNextEquippedItem() *C.char {
-	if em == nil {
-		return C.CString("")
-	}
-	item := em.NextEquippedItem()
-	if item == "" {
-		return C.CString("")
-	}
+//export InitGetAllEquipmentSlotsIter
+func InitGetAllEquipmentSlotsIter() C.bool {
+	equipment.InitGetAllSlotsIter()
+	return true
+}
+
+//export EquipmentNext
+func EquipmentNext() *C.char {
+	item := equipment.Next()
 	return C.CString(item)
-}
-
-//export EquipmentReset
-func EquipmentReset() C.bool {
-	if em == nil {
-		return false
-	}
-	em.Reset()
-	return true
 }
 
 //export EquipmentClearSlot
 func EquipmentClearSlot(slotType *C.char) C.bool {
-	if em == nil {
-		return false
-	}
+	em := equipment.GetManager()
 	return C.bool(em.ClearSlot(C.GoString(slotType)))
 }
 
 //export EquipmentGetSlotAvailability
 func EquipmentGetSlotAvailability(slotType *C.char) C.int {
-	if em == nil {
-		return 0
-	}
+	em := equipment.GetManager()
 	return C.int(em.GetSlotAvailability(C.GoString(slotType)))
+}
+
+//export EquipmentClear
+func EquipmentClear() {
+	equipment.Clear()
 }
 
 func Metrics_IncInt(name *C.char) {
@@ -334,8 +302,9 @@ func Metrics_GetString(name *C.char) *C.char {
 
 //export Metrics_SnapshotJSON
 func Metrics_SnapshotJSON() *C.char {
-	s := metrics.SnapshotJSON()
-	return C.CString(s)
+	s, _ := metrics.SnapshotJSON()
+	str := string(s.([]byte))
+	return C.CString(str)
 }
 
 //export Metrics_FreeCString
@@ -351,14 +320,6 @@ func Metrics_ClearAll() {
 //export Metrics_ClearPrefix
 func Metrics_ClearPrefix(prefix *C.char) {
 	metrics.ClearPrefix(C.GoString(prefix))
-}
-
-//export Metrics_LoadFromJSON
-func Metrics_LoadFromJSON(jsonStr *C.char) C.int {
-	if err := metrics.LoadFromJSON(C.GoString(jsonStr)); err != nil {
-		return 1 // error
-	}
-	return 0 // success
 }
 
 // Loot functions are not added reason being in order to pass the list into unreal and back needs 3 different conversations which doesn't worth it imo also taken a look into flatbuffers which offer nice conversations third will be necessary for blueprints again so given up atm but leaving the logic here
@@ -393,7 +354,11 @@ func ResetThreats() {
 	threat.GetManager().Reset()
 }
 
-// ---- Int ----
+//export Store_RandomSelect
+func Store_RandomSelect(prefix *C.char) *C.char {
+	res := store.GetStore().RandomSelect(C.GoString(prefix))
+	return C.CString(res)
+}
 
 //export Store_SetInt
 func Store_SetInt(key *C.char, val C.longlong) {
@@ -449,6 +414,11 @@ func Store_GetBool(key *C.char) C.bool {
 	return C.bool(store.GetStore().GetBool(C.GoString(key)))
 }
 
+//export Store_ReleaseBool
+func Store_ReleaseBool(key *C.char) C.bool {
+	return C.bool(store.GetStore().ReleaseBool(C.GoString(key)))
+}
+
 // ---- String ----
 
 //export Store_SetString
@@ -464,49 +434,56 @@ func Store_GetString(key *C.char) *C.char {
 
 // ---- Persistence ----
 
-//export Store_Save
-func Store_Save() C.int {
-	if err := store.GetStore().Save(); err != nil {
-		return -1
+//export Storage_Save
+func Storage_Save() *C.char {
+	if err := storage.SM().SaveAll(); err != nil {
+		return C.CString(err.Error())
 	}
-	return 0
+	return C.CString("")
 }
 
-//export Store_Load
-func Store_Load() C.int {
-	if err := store.GetStore().Load(); err != nil {
-		return -1
+//export Storage_Load
+func Storage_Load() *C.char {
+	if err := storage.SM().LoadAll(); err != nil {
+		return C.CString(err.Error())
 	}
-	return 0
+	return C.CString("")
+}
+
+//export Storage_ReloadAll
+func Storage_ReloadAll() *C.char {
+	if err := storage.SM().ReloadAll(); err != nil {
+		return C.CString(err.Error())
+	}
+	return C.CString("")
+}
+
+//export SetStorageManagerPath
+func SetStorageManagerPath(path *C.char) *C.char {
+	p := C.GoString(path)
+	if err := storage.SetStorageManagerPath(p); err != nil {
+		return C.CString(err.Error())
+	}
+	return C.CString("")
 }
 
 //export ZoneConfig_GetMaxNPC
-func ZoneConfig_GetMaxNPC( path *C.char, zoneID *C.char) C.int {
+func ZoneConfig_GetMaxNPC(zoneID *C.char) C.int {
 	id := C.GoString(zoneID)
-	p := C.GoString(path)
-	return C.int(zoneconfig.GetManager(p).GetMaxNPC(id))
+	return C.int(zoneconfig.GetManager().GetMaxNPC(id))
 }
 
 //export ZoneConfig_GetSpawnChance
-func ZoneConfig_GetSpawnChance(path *C.char, zoneID *C.char) C.float {
+func ZoneConfig_GetSpawnChance(zoneID *C.char) C.float {
 	id := C.GoString(zoneID)
-	p := C.GoString(path)
-	return C.float(zoneconfig.GetManager(p).GetSpawnChance(id))
+	return C.float(zoneconfig.GetManager().GetSpawnChance(id))
 }
 
 //export ZoneConfig_GetRandomNPCType
-func ZoneConfig_GetRandomNPCType(path *C.char, zoneID *C.char) *C.char {
+func ZoneConfig_GetRandomNPCType(zoneID *C.char) *C.char {
 	id := C.GoString(zoneID)
-	p := C.GoString(path)
-	npc := zoneconfig.GetManager(p).GetRandomNPCType(id)
+	npc := zoneconfig.GetManager().GetRandomNPCType(id)
 	return C.CString(npc)
-}
-
-//export ZoneConfig_Reload
-func ZoneConfig_Reload(path *C.char) C.int {
-	p := C.GoString(path)
-	err := zoneconfig.GetManager(p).Load()
-	return C.int(err)
 }
 
 //export Voronoi_Init
@@ -517,14 +494,6 @@ func Voronoi_Init(width C.int, height C.int, numZones C.int, seed C.longlong) {
 //export Voronoi_ZoneAt
 func Voronoi_ZoneAt(x C.int, y C.int) C.int {
 	return C.int(voronoi.ZoneAt(int(x), int(y)))
-}
-
-//export Crafting_Register
-func Crafting_Register(name *C.char, path *C.char) C.int{
-	n := C.GoString(name)
-	p := C.GoString(path)
-	
-	return C.int(crafting.Register(n, p))
 }
 
 //export Crafting_Reset
@@ -573,6 +542,44 @@ func Crafting_GetFirstRequirement(managerName *C.char, craftID *C.char) *C.char 
 	}
 
 	return C.CString(c.Requirements[0].ID)
+}
+
+//export Helpers_GetUpgradeSelections
+func Helpers_GetUpgradeSelections(count C.int) C.bool {
+	helpers.GetUpgradeSelections(int(count))
+	return true
+}
+
+//export Helpers_UpgrageItem
+func Helpers_UpgrageItem(itemID *C.char) C.bool {
+	itemid := C.GoString(itemID)
+	return C.bool(helpers.UpgrageItem(itemid))
+}
+
+//export Helpers_Next
+func Helpers_Next() *C.char {
+	item := helpers.GetNextSelections()
+	return C.CString(item)
+}
+
+//export Store_InitGetFullKeysIter
+func Store_InitGetFullKeysIter(prefix *C.char) C.bool {
+	p := C.GoString(prefix)
+	store.InitGetFullKeysIter(p)
+	return true
+}
+
+//export Store_Clear
+func Store_Clear(prefix *C.char) C.bool {
+	p := C.GoString(prefix)
+	store.GetStore().Clear(p)
+	return true
+}
+
+//export Store_Next
+func Store_Next() *C.char {
+	item := store.Next()
+	return C.CString(item)
 }
 
 
