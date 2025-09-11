@@ -513,7 +513,7 @@ func Voronoi_GetRandomInRadius(x C.int, y C.int, zoneId C.int, radius C.int) C.C
 	if !ok {
 		return C.MakeCoord(C.int(-1), C.int(-1))
 	}
-    return C.MakeCoord(C.int(x), C.int(y))
+    return C.MakeCoord(C.int(px), C.int(py))
 }
 
 //export Crafting_Reset
