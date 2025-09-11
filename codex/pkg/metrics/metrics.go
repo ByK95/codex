@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"codex/pkg/storage"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -38,6 +39,10 @@ func (c *IntCounter) Get() int64 {
 type FloatCounter struct {
 	mu sync.Mutex
 	v  float64
+}
+
+func init() {
+    storage.SM().BindFuncs("metrics", LoadFromJSON, SnapshotJSON)
 }
 
 func (c *FloatCounter) Add(delta float64) {
@@ -225,11 +230,11 @@ func SetString(name, v string)            { Default.getOrCreateString(name).Set(
 func GetString(name string) string        { return Default.getOrCreateString(name).Get() }
 func ClearAll()                 { Default.ClearAll() }
 func ClearPrefix(prefix string)  { Default.ClearPrefix(prefix) }
-func LoadFromJSON(s string) error { return Default.LoadFromJSON(s) }
+func LoadFromJSON(s json.RawMessage) error { return Default.LoadFromJSON(s) }
 
 // ---- Snapshot JSON ----
 
-func (r *Registry) SnapshotJSON() string {
+func (r *Registry) SnapshotJSON() (any, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -251,13 +256,13 @@ func (r *Registry) SnapshotJSON() string {
 
 	b, err := json.Marshal(data)
 	if err != nil {
-		return "{}"
+		return json.RawMessage(""), err
 	}
-	return string(b)
+	return json.RawMessage(b), nil
 }
 
 // LoadFromJSON replaces or sets metrics from a JSON string
-func (r *Registry) LoadFromJSON(jsonStr string) error {
+func (r *Registry) LoadFromJSON(jsonStr json.RawMessage) error {
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
 		return err
@@ -288,6 +293,6 @@ func (r *Registry) LoadFromJSON(jsonStr string) error {
 }
 
 
-func SnapshotJSON() string {
+func SnapshotJSON() (any, error) {
 	return Default.SnapshotJSON()
 }

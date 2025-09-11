@@ -4,10 +4,11 @@ import (
 	"os"
 	"testing"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStoreBasicOperations(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	// Int
 	s.SetInt("currency.gold", 100)
@@ -38,20 +39,22 @@ func TestStorePersistence(t *testing.T) {
 	tmpFile := "test_json"
 	defer os.Remove(tmpFile)
 
-	s := NewStore(tmpFile)
+	s := NewStore()
 	s.SetInt("currency.gold", 200)
 	s.SetFloat("player.speed", 1.23)
 	s.SetBool("quest.completed", false)
 	s.SetString("player.name", "TestPlayer")
 	s.SetInt("player.progress.level", 7) // nested key
 
-	if err := s.Save(); err != nil {
+
+	msg, err := s.Save()
+	if err != nil {
 		t.Fatalf("Save failed: %v", err)
 	}
 
 	// Create new store and load
-	s2 := NewStore(tmpFile)
-	if err := s2.Load(); err != nil {
+	s2 := NewStore()
+	if err := s2.Load(msg); err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
 
@@ -74,7 +77,7 @@ func TestStorePersistence(t *testing.T) {
 }
 
 func TestOverwriteValues(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	s.SetInt("val", 10)
 	s.SetInt("val", 20)
@@ -90,7 +93,7 @@ func TestOverwriteValues(t *testing.T) {
 }
 
 func TestTypeMismatchReturnsDefault(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	s.SetInt("val", 42)
 	if v := s.GetFloat("val"); v != 0 {
@@ -105,7 +108,7 @@ func TestTypeMismatchReturnsDefault(t *testing.T) {
 }
 
 func TestNonExistentKeysReturnDefault(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	if v := s.GetInt("does.not.exist"); v != 0 {
 		t.Errorf("expected 0 for missing int key, got %d", v)
@@ -122,16 +125,14 @@ func TestNonExistentKeysReturnDefault(t *testing.T) {
 }
 
 func TestSaveAndLoadEmptyStore(t *testing.T) {
-	tmpFile := "empty_store.json"
-	defer os.Remove(tmpFile)
-
-	s := NewStore(tmpFile)
-	if err := s.Save(); err != nil {
+	s := NewStore()
+	msg, err := s.Save()
+	if err != nil {
 		t.Fatalf("Save failed on empty store: %v", err)
 	}
 
-	s2 := NewStore(tmpFile)
-	if err := s2.Load(); err != nil {
+	s2 := NewStore()
+	if err := s2.Load(msg); err != nil {
 		t.Fatalf("Load failed on empty store: %v", err)
 	}
 
@@ -145,25 +146,25 @@ func TestPersistenceOverwrite(t *testing.T) {
 	tmpFile := "overwrite_store.json"
 	defer os.Remove(tmpFile)
 
-	s := NewStore(tmpFile)
+	s := NewStore()
 	s.SetInt("currency.gold", 50)
-	_ = s.Save()
+	msg, _ := s.Save()
 
 	// Overwrite
-	s2 := NewStore(tmpFile)
-	_ = s2.Load()
+	s2 := NewStore()
+	_ = s2.Load(msg)
 	s2.SetInt("currency.gold", 999)
-	_ = s2.Save()
+	msg2, _ := s2.Save()
 
-	s3 := NewStore(tmpFile)
-	_ = s3.Load()
+	s3 := NewStore()
+	_ = s3.Load(msg2)
 	if v := s3.GetInt("currency.gold"); v != 999 {
 		t.Errorf("expected 999 after overwrite and reload, got %d", v)
 	}
 }
 
 func TestMultipleTypesSameKey(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	s.SetInt("key", 100)
 	s.SetString("key", "string-value")
@@ -175,16 +176,8 @@ func TestMultipleTypesSameKey(t *testing.T) {
 	}
 }
 
-func TestFileNotFoundLoad(t *testing.T) {
-	s := NewStore("non_existent_file.json")
-	err := s.Load()
-	if err == nil {
-		t.Errorf("expected error when loading non-existent file, got nil")
-	}
-}
-
 func TestKeys(t *testing.T) {
-	s := NewStore("")
+	s := NewStore()
 
 	// Setup nested structure
 	s.SetInt("player.progress.level", 7)
@@ -234,7 +227,7 @@ func TestKeys(t *testing.T) {
 }
 
 func TestStoreFullKeys(t *testing.T) {
-    s := NewStore("test.json")
+    s := NewStore()
 
     // Insert some values
     s.SetString("player.name", "TestPlayer")
@@ -271,6 +264,20 @@ func TestStoreFullKeys(t *testing.T) {
     }
 }
 
+func TestStoreFullKeysIter(t *testing.T) {
+    s := NewStore()
+	globalStore = s
+
+    // Insert some values
+    s.SetString("ship.starlance.slot_type", "ship")
+	s.SetString("ship.solar_wind.slot_type", "ship")
+
+	InitGetFullKeysIter("ship")
+
+	assert.Equal(t, "ship.starlance", Next())
+    assert.Equal(t, "ship.solar_wind", Next())
+}
+
 // helper to compare slices ignoring order
 func equalUnordered(a, b []string) bool {
     if len(a) != len(b) {
@@ -298,7 +305,7 @@ func TestLoadFromText(t *testing.T) {
 		"quest.completed": {"t": 2, "v": false}
 	}`
 
-	s := NewStore(".")
+	s := NewStore()
 	err := s.LoadFromText(text)
 	if err != nil {
 		t.Fatalf("LoadFromText failed: %v", err)
@@ -347,7 +354,7 @@ func TestRandomSelection(t *testing.T) {
 		"galactic_draw.7.chance": {"t": 0, "v": 1}
 	}`
 
-	s := NewStore(".")
+	s := NewStore()
 	err := s.LoadFromText(text)
 
 	if err != nil {
@@ -386,4 +393,57 @@ func TestRandomSelection(t *testing.T) {
 	for k, v := range counts {
 		fmt.Printf("%-25s %d\n", k, v)
 	}
+}
+
+func TestStore_Clear(t *testing.T) {
+	s := NewStore()
+	s.SetString("user.alice.name", "Alice")
+	s.SetString("user.alice.age", "30")
+	s.SetString("user.bob.name", "Bob")
+
+	// Sanity check
+	assert.Equal(t, "Alice", s.GetString("user.alice.name"))
+	assert.Equal(t, "Bob", s.GetString("user.bob.name"))
+
+	// Clear subtree under prefix
+	s.Clear("user.alice")
+
+	assert.Equal(t, "", s.GetString("user.alice.name"))
+	assert.Equal(t, "", s.GetString("user.alice.age"))
+	assert.Equal(t, "Bob", s.GetString("user.bob.name"))
+
+
+	s.SetString("user.alice.name", "Alice")
+	s.SetString("user.alice.age", "30")
+	s.SetString("user.bob.name", "Bob")
+
+	// Clear everything
+	s.Clear("")
+	assert.Equal(t, "", s.GetString("user.bob.name"))
+
+	s.SetString("user.alice.name", "Alice")
+	s.SetString("user.alice.age", "30")
+	s.SetString("user.bob.name", "Bob")
+	s.Clear("user")
+
+	assert.Equal(t, "", s.GetString("user.alice.name"))
+}
+
+func TestStoreReleaseBool(t *testing.T) {
+	s := NewStore()
+
+	// Case 1: value exists and is true
+	s.SetBool("quest.completed", true)
+	assert.True(t, s.ReleaseBool("quest.completed"), "should return true when releasing true value")
+	assert.False(t, s.GetBool("quest.completed"), "value should be reset to false after release")
+
+	// Case 2: value exists but already false
+	assert.False(t, s.ReleaseBool("quest.completed"), "should return false when value is already false")
+
+	// Case 3: key does not exist
+	assert.False(t, s.ReleaseBool("quest.missing"), "should return false for non-existent key")
+
+	// Case 4: wrong type (int instead of bool)
+	s.SetInt("quest.level", 5)
+	assert.False(t, s.ReleaseBool("quest.level"), "should return false for type mismatch")
 }

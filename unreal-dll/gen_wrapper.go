@@ -44,10 +44,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "{{ .Category }}")
     static {{ .BpReturnType }} {{ .Name }}({{ .BpParams }});
 	{{- end }}
+	UFUNCTION(BlueprintCallable, Category = "DLL")
+    static void UnloadDLL();
 
 private:
     static bool LoadDLL();
-    static void UnloadDLL();
 };
 `
 
@@ -187,41 +188,36 @@ func mapCTypeToUnreal(cType string) string {
 	}
 }
 
-func getFunctionCategory(fName string) string{
-	if strings.Contains(strings.ToLower(fName), "inventory"){
-		return "Inventory"
+func getFunctionCategory(fName string) string {
+	fName = strings.ToLower(fName)
+
+	categories := []struct {
+		key, value string
+	}{
+		{"inventory", "Inventory"},
+		{"equipment", "Equipment"},
+		{"metrics", "Metrics"},
+		{"threat", "Threat"},
+		{"store", "Store"},
+		{"zoneconfig", "Zoneconfig"},
+		{"voronoi", "Voronoi"},
+		{"storage", "Storage"},
 	}
 
-	if strings.Contains(strings.ToLower(fName), "equipment"){
-		return "Equipment"
+	for _, c := range categories {
+		if strings.Contains(fName, c.key) {
+			return c.value
+		}
 	}
-
-	if strings.Contains(strings.ToLower(fName), "metrics"){
-		return "Metrics"
-	}
-
-	if strings.Contains(strings.ToLower(fName), "threat"){
-		return "Threat"
-	}
-
-	if strings.Contains(strings.ToLower(fName), "store"){
-		return "Store"
-	}
-
-	if strings.Contains(strings.ToLower(fName), "zoneconfig"){
-		return "Zoneconfig"
-	}
-
-	if strings.Contains(strings.ToLower(fName), "voronoi"){
-		return "Voronoi"
-	}
-
 	return ""
 }
 
+
 func parseHeaderLine(line string) (Func, bool) {
 	// Updated regex to handle the actual generated header format
-	re := regexp.MustCompile(`extern __declspec\(dllexport\)\s+([^\s]+)\s+([^\s(]+)\(([^)]*)\);`)
+	re := regexp.MustCompile(
+		`extern __declspec\(dllexport\)\s+(.+?)\s+([^\s(]+)\(([^)]*)\);`,
+	)
 	matches := re.FindStringSubmatch(line)
 	if len(matches) != 4 {
 		return Func{}, false

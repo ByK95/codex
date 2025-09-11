@@ -2,6 +2,7 @@
 package equipment
 
 import (
+	"codex/pkg/iterator"
 	"sort"
 	"sync"
 )
@@ -23,6 +24,7 @@ type EquipmentManager struct {
 // Global equipment manager instance
 var globalManager *EquipmentManager
 var once sync.Once
+var equipmentIter *iterator.Iterator[string]
 
 // GetManager returns the global equipment manager instance (singleton)
 func GetManager() *EquipmentManager {
@@ -266,4 +268,40 @@ func (em *EquipmentManager) GetSlotAvailability(slotType string) int {
 	}
 
 	return slot.MaxSlots - len(slot.ItemIDS)
+}
+
+// HasAnyEmptySlot returns true if at least one defined slot has available capacity
+func (em *EquipmentManager) HasAnyEmptySlot() bool {
+	em.mu.RLock()
+	defer em.mu.RUnlock()
+
+	for _, slot := range em.slots {
+		if len(slot.ItemIDS) < slot.MaxSlots {
+			return true
+		}
+	}
+	return false
+}
+
+func InitGetAllEquippedItemsIter(){
+	allItems := GetManager().GetAllEquippedItems()
+	equipmentIter = iterator.NewIterator(allItems)
+}
+
+func InitGetAllSlotsIter(){
+	allSlotTypes := GetManager().GetAllSlotTypes()
+	equipmentIter = iterator.NewIterator(allSlotTypes)
+}
+
+func Next() string{
+	if equipmentIter == nil {
+		return ""
+	}
+	val, _ := equipmentIter.Next()
+	return val
+}
+
+func Clear(){
+	globalManager = NewEquipmentManager()
+	equipmentIter = nil
 }

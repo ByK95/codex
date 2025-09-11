@@ -1,37 +1,28 @@
 package crafting
 
 import (
-	"os"
+	"encoding/json"
 	"testing"
 	"github.com/stretchr/testify/assert"
 )
 
-var testJSON = `[
-	{"id":"axe","requirements":[{"id":"wood","qty":3},{"id":"iron","qty":2}]},
-	{"id":"pickaxe","requirements":[{"id":"wood","qty":2},{"id":"stone","qty":3}]},
-	{"id":"potion","requirements":[{"id":"herb","qty":5}]}
-]`
+var testJSON = `{
+	"test": [
+		{"id":"axe","requirements":[{"id":"wood","qty":3},{"id":"iron","qty":2}]},
+		{"id":"pickaxe","requirements":[{"id":"wood","qty":2},{"id":"stone","qty":3}]},
+		{"id":"potion","requirements":[{"id":"herb","qty":5}]}
+	],
+	"other": [
+		{"id":"elixir","requirements":[{"id":"herb","qty":7}]}
+	]
+}`
 
-func writeTestFile(t *testing.T, content string) string {
-	tmpfile, err := os.CreateTemp("", "crafting_test_*.json")
-	assert.NoError(t, err)
-
-	_, err = tmpfile.Write([]byte(content))
-	assert.NoError(t, err)
-
-	err = tmpfile.Close()
-	assert.NoError(t, err)
-
-	return tmpfile.Name()
+func loadTestData(t *testing.T)  {
+	LoadManagers(json.RawMessage(testJSON))
 }
 
 func TestManager_LoadAndLookup(t *testing.T) {
-	path := writeTestFile(t, testJSON)
-	defer os.Remove(path)
-
-	// Register manager
-	res := Register("test", path)
-	assert.Equal(t, 1, res)
+	loadTestData(t)
 
 	// Retrieve manager
 	m, ok := Get("test")
@@ -66,11 +57,8 @@ func TestManager_LoadAndLookup(t *testing.T) {
 }
 
 func TestRegistry_ResetSingleAndAll(t *testing.T) {
-	path := writeTestFile(t, testJSON)
-	defer os.Remove(path)
-
-	_ = Register("m1", path)
-	_ = Register("m2", path)
+	_ = Register("m1", &Manager{})
+	_ = Register("m2", &Manager{})
 
 	m1, ok := Get("m1")
 	assert.True(t, ok)
