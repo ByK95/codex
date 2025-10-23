@@ -97,3 +97,41 @@ func ZoneAt(x, y int) int {
 	}
 	return instance.Grid[y][x]
 }
+
+// RandomPositionInRadius returns a random (x,y) within radius of (cx,cy)
+// that belongs to the given zone. Returns ok=false if none found.
+func RandomPositionInRadius(cx, cy, zone, radius int) (x, y int, ok bool) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		return 0, 0, false
+	}
+
+	var candidates [][2]int
+	r2 := radius * radius
+
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			px := cx + dx
+			py := cy + dy
+
+			if px < 0 || py < 0 || px >= instance.Width || py >= instance.Height {
+				continue
+			}
+			if dx*dx+dy*dy > r2 {
+				continue
+			}
+			if instance.Grid[py][px] == zone {
+				candidates = append(candidates, [2]int{px, py})
+			}
+		}
+	}
+
+	if len(candidates) == 0 {
+		return 0, 0, false
+	}
+
+	p := candidates[instance.rng.Intn(len(candidates))]
+	return p[0], p[1], true
+}

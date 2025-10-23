@@ -60,3 +60,38 @@ func TestZoneAtWithoutInit(t *testing.T) {
 	v := Get()
 	*v = *Get() // not nil
 }
+
+func TestRandomPositionInRadius(t *testing.T) {
+	Init(20, 20, 3, 1234)
+	v := Get()
+	assert.NotNil(t, v)
+
+	cx, cy := 10, 10
+	zone := ZoneAt(cx, cy)
+	assert.NotEqual(t, -1, zone, "Center must belong to some zone")
+
+	// Try multiple times to increase chance of coverage
+	for i := 0; i < 20; i++ {
+		x, y, ok := RandomPositionInRadius(cx, cy, zone, 5)
+		assert.True(t, ok, "Should find a valid random position")
+
+		// Check inside grid bounds
+		assert.GreaterOrEqual(t, x, 0)
+		assert.GreaterOrEqual(t, y, 0)
+		assert.Less(t, x, v.Width)
+		assert.Less(t, y, v.Height)
+
+		// Check zone match
+		assert.Equal(t, zone, ZoneAt(x, y))
+
+		// Check within radius
+		dx, dy := x-cx, y-cy
+		assert.LessOrEqual(t, dx*dx+dy*dy, 25) // 5^2
+	}
+
+	// Case where no positions exist (e.g. zone mismatch far away)
+	x, y, ok := RandomPositionInRadius(0, 0, -1, 3)
+	assert.False(t, ok)
+	assert.Equal(t, 0, x)
+	assert.Equal(t, 0, y)
+}
