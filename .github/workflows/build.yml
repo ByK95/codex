@@ -1,7 +1,9 @@
 name: Build Go DLL
 
 on:
-  workflow_dispatch: # Run manually
+  push:
+    branches: ["*"]     # Run on any branch push
+  workflow_dispatch:   
 
 jobs:
   build:
