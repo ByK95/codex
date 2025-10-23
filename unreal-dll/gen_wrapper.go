@@ -50,6 +50,18 @@ struct FCoord2d {
     int32 Y;
 };
 
+USTRUCT(BlueprintType)
+struct FRequirement
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    FString ID;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 Qty;
+};
+
 UCLASS()
 class {{ .Api }} U{{ .Filename }} : public UBlueprintFunctionLibrary
 {
@@ -93,6 +105,33 @@ FCoord2d ConvertCoord2d(const Coord2d& c) {
     out.X = c.x;
     out.Y = c.y;
     return out;
+}
+
+TArray<FRequirement> UCodexDLLBPLibrary::GetAllRequirements(const FString& ManagerName, const FString& CraftID)
+{
+    TArray<FRequirement> Result;
+
+    if (!LoadDLL())
+        return Result;
+
+    FTCHARToUTF8 managerUtf8(*ManagerName);
+    FTCHARToUTF8 craftUtf8(*CraftID);
+
+    CRequirementArray* arr = Crafting_GetAllRequirements(managerUtf8.Get(), craftUtf8.Get());
+    if (!arr)
+        return Result;
+
+    for (int i = 0; i < arr->count; i++)
+    {
+        CRequirement* r = arr->items[i];
+        FRequirement req;
+        req.ID = UTF8_TO_TCHAR(r->ID);
+        req.Qty = r->Qty;
+        Result.Add(req);
+    }
+
+    FreeRequirementArray(arr);
+    return Result;
 }
 
 bool U{{ .Filename }}::LoadDLL()
