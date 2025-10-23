@@ -346,7 +346,7 @@ func flatten(prefix string, n *node, out map[string]StoreEntry) {
 	}
 }
 
-func (s *Store) Save() ([]byte, error) {
+func (s *Store) Save() (any, error) {
     s.mu.RLock()
     defer s.mu.RUnlock()
 
@@ -360,11 +360,7 @@ func (s *Store) Save() ([]byte, error) {
     // traverse trie and group by type
     s.traverseAndGroup(s.root, "", &grouped)
 
-	b, err := json.Marshal(grouped)
-	if err != nil {
-		return json.RawMessage(""), err
-	}
-	return json.RawMessage(b), nil
+	return grouped, nil
 }
 
 func (s *Store) traverseAndGroup(n *node, prefix string, grouped *GroupedStore) {

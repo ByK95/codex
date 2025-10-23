@@ -5,6 +5,7 @@ import (
 	"testing"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"encoding/json"
 )
 
 func TestStoreBasicOperations(t *testing.T) {
@@ -54,7 +55,8 @@ func TestStorePersistence(t *testing.T) {
 
 	// Create new store and load
 	s2 := NewStore()
-	if err := s2.Load(msg); err != nil {
+	jm, _ := json.Marshal(msg)
+	if err := s2.Load(jm); err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
 
@@ -132,7 +134,8 @@ func TestSaveAndLoadEmptyStore(t *testing.T) {
 	}
 
 	s2 := NewStore()
-	if err := s2.Load(msg); err != nil {
+	jm, _ := json.Marshal(msg)
+	if err := s2.Load(jm); err != nil {
 		t.Fatalf("Load failed on empty store: %v", err)
 	}
 
@@ -149,15 +152,17 @@ func TestPersistenceOverwrite(t *testing.T) {
 	s := NewStore()
 	s.SetInt("currency.gold", 50)
 	msg, _ := s.Save()
+	jm, _ := json.Marshal(msg)
 
 	// Overwrite
 	s2 := NewStore()
-	_ = s2.Load(msg)
+	_ = s2.Load(jm)
 	s2.SetInt("currency.gold", 999)
 	msg2, _ := s2.Save()
+	jm2, _ := json.Marshal(msg2)
 
 	s3 := NewStore()
-	_ = s3.Load(msg2)
+	_ = s3.Load(jm2)
 	if v := s3.GetInt("currency.gold"); v != 999 {
 		t.Errorf("expected 999 after overwrite and reload, got %d", v)
 	}
@@ -491,7 +496,8 @@ func TestSaveGrouped(t *testing.T) {
 
 	// Load it back
 	s2 := NewStore()
-	if err := s2.Load(data); err != nil {
+	jm2, _ := json.Marshal(data)
+	if err := s2.Load(jm2); err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
 
