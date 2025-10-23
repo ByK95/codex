@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -23,6 +24,7 @@ type Func struct {
 
 type TemplateData struct {
 	Filename string
+	Api string
 	DLLName  string
 	Funcs    []*Func
 }
@@ -35,7 +37,7 @@ const wrapperHeaderTemplate = `
 #include "{{ .Filename }}.generated.h"
 
 UCLASS()
-class ORBITSURVIVORS_API U{{ .Filename }} : public UBlueprintFunctionLibrary
+class {{ .Api }} U{{ .Filename }} : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 
@@ -341,9 +343,28 @@ func markStringFunctions(fns []*Func) {
 
 func main() {
 	filePath := "./codex.h"
-	destinationPath := "E:/Unreal Projects/OrbitSurvivors/Source/OrbitSurvivors"
-	destinationPublicPath := destinationPath + "/Public/"
-	destinationPrivatePath := destinationPath + "/Private/"
+	// destinationPath := "E:/Unreal Projects/OrbitSurvivors/Source/OrbitSurvivors"
+	
+	// destinationPath := "E:/Unreal Projects/ResourceSystem/Source/ResourceSystem/"
+	
+	destinationPath := flag.String("dest", "E:/Unreal Projects/ResourceSystem/Source/ResourceSystem/", "Destination path")
+	sepdest := flag.Bool("sep-dest", false, "seperate destination files")
+	var destinationPublicPath string
+	var destinationPrivatePath string
+
+	flag.Parse()
+	if *sepdest {
+		destinationPublicPath = *destinationPath + "/Public/"
+		destinationPrivatePath = *destinationPath + "/Private/"
+	}else{
+		destinationPublicPath = *destinationPath 
+		destinationPrivatePath = *destinationPath
+	}
+	
+	fmt.Println("File Path:", filePath)
+	fmt.Println("Destination Path:", *destinationPath)
+	fmt.Println("Public Path:", destinationPublicPath)
+	fmt.Println("Private Path:", destinationPrivatePath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -384,6 +405,8 @@ func main() {
 
 	data := TemplateData{
 		Filename: "CodexDLLBPLibrary",
+		Api: "RESOURCESYSTEM_API",
+		// Api: "ORBITSURVIVORS_API",
 		DLLName:  "codex.dll",
 		Funcs:    funcs,
 	}
