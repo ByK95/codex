@@ -38,13 +38,11 @@ static inline CRequirementArray* AllocRequirementArray(int capacity) {
 
 // Add single requirement to array
 static inline void AddRequirement(CRequirementArray* arr, const char* id, int qty) {
-    if (arr->count >= arr->capacity) {
-        // Resize array if needed
-        arr->capacity *= 2;
-        arr->items = (CRequirement**)realloc(arr->items, sizeof(CRequirement*) * arr->capacity);
-    }
+    if (arr->count >= arr->capacity) return;
     CRequirement* r = (CRequirement*)malloc(sizeof(CRequirement));
-    r->ID = strdup(id);
+    size_t len = strlen(id) + 1;
+    r->ID = (char*)malloc(len);
+    memcpy(r->ID, id, len);
     r->Qty = qty;
     arr->items[arr->count++] = r;
 }
