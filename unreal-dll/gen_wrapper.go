@@ -69,11 +69,17 @@ class {{ .Api }} U{{ .Filename }} : public UBlueprintFunctionLibrary
 
 public:
 	{{- range .Funcs }}
+		{{- if eq .BpReturnType "CRequirementArray*" }}
+	static {{ .BpReturnType }} {{ .Name }}({{ .BpParams }});
+		{{- else }}
     UFUNCTION(BlueprintCallable, Category = "{{ .Category }}")
     static {{ .BpReturnType }} {{ .Name }}({{ .BpParams }});
 	{{- end }}
+	{{- end }}
 	UFUNCTION(BlueprintCallable, Category = "DLL")
     static void UnloadDLL();
+	UFUNCTION(BlueprintCallable, Category = "Crafting")
+	static TArray<FRequirement> GetAllRequirements(const FString& ManagerName, const FString& CraftID);
 
 private:
     static bool LoadDLL();
