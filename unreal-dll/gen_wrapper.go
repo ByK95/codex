@@ -25,6 +25,7 @@ type Func struct {
 type TemplateData struct {
 	Filename string
 	Api string
+	Preamble string
 	DLLName  string
 	Funcs    []*Func
 }
@@ -35,6 +36,8 @@ const wrapperHeaderTemplate = `
 
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "{{ .Filename }}.generated.h"
+
+{{ .Preamble }}
 
 USTRUCT(BlueprintType)
 struct FCoord2d {
@@ -76,7 +79,11 @@ namespace
     void* DLLHandle = nullptr;
     bool bDLLInitialized = false;
 {{- range .Funcs }}
+    {{- if eq .BpReturnType "FCoord2d" }}
+    typedef Coord2d (*{{ .Name }}Func)({{ .Params }});
+    {{- else }}
     typedef {{ .ReturnType }} (*{{ .Name }}Func)({{ .Params }});
+    {{- end }}
     {{ .Name }}Func p{{ .Name }} = nullptr;
 {{- end }}
 }
@@ -155,6 +162,8 @@ void U{{ .Filename }}::UnloadDLL()
     {
 {{- if eq .BpReturnType "int" }}
         return -1;  // Return error value for int
+{{- else if eq .BpReturnType "FCoord2d"}}
+		return FCoord2d();
 {{- else if eq .BpReturnType "bool" }}
         return false;
 {{- else if eq .BpReturnType "FString" }}
@@ -168,8 +177,8 @@ void U{{ .Filename }}::UnloadDLL()
 	{{- range .BpParamNames }}
 	FTCHARToUTF8 {{ . }}Utf8(*{{ . }});
 	{{- end }}
-	{{ if eq .BpReturnType "FCoord2d "}}
-	return ConvertCoord2d();
+	{{ if eq .BpReturnType "FCoord2d"}}
+	return ConvertCoord2d(p{{ .Name }}({{ join .ParamNames ", " }}));
     {{ else if eq .BpReturnType "FString"}}
 	char* cResult = p{{ .Name }}({{ join .ParamNames ", " }});
 	FString Result = UTF8_TO_TCHAR(cResult);
@@ -187,6 +196,12 @@ void U{{ .Filename }}::UnloadDLL()
 func mapCTypeToUnreal(cType string) string {
 	cType = strings.ReplaceAll(cType, "long long int", "int64")
 	cType = strings.ReplaceAll(cType, "_Bool", "bool")
+
+	// Unreal struct types you want to auto-wrap as F<Type>
+	unrealStructs := map[string]bool{
+		"Coord2d": true,
+	}
+
 	switch cType {
 	case "_Bool":
 		return "bool"
@@ -205,9 +220,13 @@ func mapCTypeToUnreal(cType string) string {
 	case "GoFloat64":
 		return "double"
 	default:
+		if unrealStructs[cType] {
+			return "F" + cType
+		}
 		return cType
 	}
 }
+
 
 func getFunctionCategory(fName string) string {
 	fName = strings.ToLower(fName)
@@ -392,15 +411,38 @@ func main() {
 	defer file.Close()
 
 	funcs := []*Func{}
+	var preambleLines []string
+	inPreamble := false
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		if strings.Contains(line, "/* Start of preamble from import \"C\" comments.") {
+			inPreamble = true
+			continue // skip the marker line
+		}
+		if strings.Contains(line, "/* End of preamble from import \"C\" comments.") {
+			inPreamble = false
+			continue // skip the marker line
+		}
+
+		if inPreamble {
+			lineTrim := strings.TrimSpace(line)
+			// Skip #line directives
+			if strings.HasPrefix(lineTrim, "#line") || strings.HasPrefix(lineTrim, "#include ") {
+				continue
+			}
+			preambleLines = append(preambleLines, line)
+			continue
+		}
+
 		fn, ok := parseHeaderLine(line)
 		if ok {
 			funcs = append(funcs, &fn)
 		}
 	}
+	preamble := strings.Join(preambleLines, "\n")
 
 	markStringFunctions(funcs)
 
@@ -428,6 +470,7 @@ func main() {
 		// Api: "ORBITSURVIVORS_API",
 		DLLName:  "codex.dll",
 		Funcs:    funcs,
+		Preamble: preamble,
 	}
 
 	headerFile, err := os.Create(destinationPublicPath + "CodexDLLBPLibrary.h")
