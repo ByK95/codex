@@ -507,7 +507,7 @@ func Voronoi_ZoneAt(x C.int, y C.int) C.int {
 	return C.int(voronoi.ZoneAt(int(x), int(y)))
 }
 
-// Voronoi_GetRandomInRadius
+//export Voronoi_GetRandomInRadius
 func Voronoi_GetRandomInRadius(x C.int, y C.int, zoneId C.int, radius C.int) C.Coord2d {
     px, py, ok := voronoi.RandomPositionInRadius(int(x), int(y), int(zoneId), int(radius));
 	if !ok {

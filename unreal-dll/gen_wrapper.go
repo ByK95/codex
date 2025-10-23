@@ -36,6 +36,17 @@ const wrapperHeaderTemplate = `
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "{{ .Filename }}.generated.h"
 
+USTRUCT(BlueprintType)
+struct FCoord2d {
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 X;
+
+    UPROPERTY(BlueprintReadWrite)
+    int32 Y;
+};
+
 UCLASS()
 class {{ .Api }} U{{ .Filename }} : public UBlueprintFunctionLibrary
 {
@@ -68,6 +79,13 @@ namespace
     typedef {{ .ReturnType }} (*{{ .Name }}Func)({{ .Params }});
     {{ .Name }}Func p{{ .Name }} = nullptr;
 {{- end }}
+}
+
+FCoord2d ConvertCoord2d(const Coord2d& c) {
+    FCoord2d out;
+    out.X = c.x;
+    out.Y = c.y;
+    return out;
 }
 
 bool U{{ .Filename }}::LoadDLL()
@@ -150,8 +168,9 @@ void U{{ .Filename }}::UnloadDLL()
 	{{- range .BpParamNames }}
 	FTCHARToUTF8 {{ . }}Utf8(*{{ . }});
 	{{- end }}
-
-    {{ if eq .BpReturnType "FString"}}
+	{{ if eq .BpReturnType "FCoord2d "}}
+	return ConvertCoord2d();
+    {{ else if eq .BpReturnType "FString"}}
 	char* cResult = p{{ .Name }}({{ join .ParamNames ", " }});
 	FString Result = UTF8_TO_TCHAR(cResult);
 	pMetrics_FreeCString(cResult);
