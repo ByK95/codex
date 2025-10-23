@@ -32,6 +32,13 @@ type StoreEntry struct {
 	Value interface{} `json:"v"`
 }
 
+type GroupedStore struct {
+    Strings map[string]string  `json:"strings"`
+    Ints    map[string]int64   `json:"ints"`
+    Floats  map[string]float64 `json:"floats"`
+    Bools   map[string]bool    `json:"bools"`
+}
+
 type node struct {
 	children map[string]*node
 	entry    *StoreEntry // nil if not a leaf
@@ -339,117 +346,114 @@ func flatten(prefix string, n *node, out map[string]StoreEntry) {
 	}
 }
 
-func (s *Store) Save() (json.RawMessage, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Store) Save() ([]byte, error) {
+    s.mu.RLock()
+    defer s.mu.RUnlock()
 
-	flat := make(map[string]StoreEntry)
-	flatten("", s.root, flat)
+    grouped := GroupedStore{
+        Strings: make(map[string]string),
+        Ints:    make(map[string]int64),
+        Floats:  make(map[string]float64),
+        Bools:   make(map[string]bool),
+    }
 
-	data, err := json.Marshal(flat)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+    // traverse trie and group by type
+    s.traverseAndGroup(s.root, "", &grouped)
+
+    return json.MarshalIndent(grouped, "", "  ")
+}
+
+func (s *Store) traverseAndGroup(n *node, prefix string, grouped *GroupedStore) {
+    if n.entry != nil {
+        switch n.entry.Type {
+        case StringType:
+            if v, ok := n.entry.Value.(string); ok {
+                grouped.Strings[prefix] = v
+            }
+        case IntType:
+            if v, ok := n.entry.Value.(int64); ok {
+                grouped.Ints[prefix] = v
+            }
+        case FloatType:
+            if v, ok := n.entry.Value.(float64); ok {
+                grouped.Floats[prefix] = v
+            }
+        case BoolType:
+            if v, ok := n.entry.Value.(bool); ok {
+                grouped.Bools[prefix] = v
+            }
+        }
+    }
+
+    for key, child := range n.children {
+        childPrefix := prefix
+        if childPrefix != "" {
+            childPrefix += "."
+        }
+        childPrefix += key
+        s.traverseAndGroup(child, childPrefix, grouped)
+    }
 }
 
 func (s *Store) Load(data json.RawMessage) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+    s.mu.Lock()
+    defer s.mu.Unlock()
 
-	raw := make(map[string]StoreEntry)
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
+    grouped := GroupedStore{
+        Strings: make(map[string]string),
+        Ints:    make(map[string]int64),
+        Floats:  make(map[string]float64),
+        Bools:   make(map[string]bool),
+    }
 
-	// reset root
-	s.root = &node{children: make(map[string]*node)}
+    if err := json.Unmarshal(data, &grouped); err != nil {
+        return err
+    }
 
-	// rebuild trie
-	for k, e := range raw {
-		n := s.getOrCreateNode(k)
+    // reset root
+    s.root = &node{children: make(map[string]*node)}
 
-		switch e.Type {
-		case IntType:
-			if f, ok := e.Value.(float64); ok {
-				e.Value = int64(f)
-			}
-		case FloatType:
-			if f, ok := e.Value.(float64); ok {
-				e.Value = math.Round(f*100) / 100
-			}
-		case BoolType:
-			if b, ok := e.Value.(bool); ok {
-				e.Value = b
-			} else {
-				e.Value = false
-			}
-		case StringType:
-			if str, ok := e.Value.(string); ok {
-				e.Value = str
-			} else {
-				e.Value = ""
-			}
-		}
+    // rebuild trie from strings
+    for k, v := range grouped.Strings {
+        n := s.getOrCreateNode(k)
+        n.entry = &StoreEntry{
+            Type:  StringType,
+            Value: v,
+        }
+    }
 
-		// Assign the processed entry back to the node
-		n.entry = &StoreEntry{
-			Type:  e.Type,
-			Value: e.Value,
-		}
-	}
+    // rebuild trie from ints
+    for k, v := range grouped.Ints {
+        n := s.getOrCreateNode(k)
+        n.entry = &StoreEntry{
+            Type:  IntType,
+            Value: v,
+        }
+    }
 
+    // rebuild trie from floats
+    for k, v := range grouped.Floats {
+        n := s.getOrCreateNode(k)
+        n.entry = &StoreEntry{
+            Type:  FloatType,
+            Value: math.Round(v*100) / 100,
+        }
+    }
 
-	return nil
+    // rebuild trie from bools
+    for k, v := range grouped.Bools {
+        n := s.getOrCreateNode(k)
+        n.entry = &StoreEntry{
+            Type:  BoolType,
+            Value: v,
+        }
+    }
+
+    return nil
 }
 
 func (s *Store) LoadFromText(text string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	raw := make(map[string]StoreEntry)
-	if err := json.Unmarshal([]byte(text), &raw); err != nil {
-		return err
-	}
-
-	// reset root
-	s.root = &node{children: make(map[string]*node)}
-
-	// rebuild trie
-	for k, e := range raw {
-		n := s.getOrCreateNode(k)
-
-		switch e.Type {
-		case IntType:
-			if f, ok := e.Value.(float64); ok {
-				e.Value = int64(f)
-			}
-		case FloatType:
-			if f, ok := e.Value.(float64); ok {
-				e.Value = math.Round(f*100) / 100
-			}
-		case BoolType:
-			if b, ok := e.Value.(bool); ok {
-				e.Value = b
-			} else {
-				e.Value = false
-			}
-		case StringType:
-			if str, ok := e.Value.(string); ok {
-				e.Value = str
-			} else {
-				e.Value = ""
-			}
-		}
-
-		// assign processed entry
-		n.entry = &StoreEntry{
-			Type:  e.Type,
-			Value: e.Value,
-		}
-	}
-
-	return nil
+    return s.Load(json.RawMessage(text))
 }
 
 func InitGetFullKeysIter(prefix string){

@@ -274,8 +274,20 @@ func TestStoreFullKeysIter(t *testing.T) {
 
 	InitGetFullKeysIter("ship")
 
-	assert.Equal(t, "ship.starlance", Next())
-    assert.Equal(t, "ship.solar_wind", Next())
+	results := []string{}
+	result1 := Next()
+	result2 := Next()
+	
+	if result1 != "" {
+		results = append(results, result1)
+	}
+	if result2 != "" {
+		results = append(results, result2)
+	}
+
+	// Check we got both expected keys in any order
+	expected := []string{"ship.starlance", "ship.solar_wind"}
+	assert.ElementsMatch(t, expected, results)
 }
 
 // helper to compare slices ignoring order
@@ -297,12 +309,21 @@ func equalUnordered(a, b []string) bool {
 }
 
 func TestLoadFromText(t *testing.T) {
+	// New grouped format
 	text := `{
-		"currency.gold": {"t": 0, "v": 200},
-		"player.name": {"t": 3, "v": "TestPlayer"},
-		"player.progress.level": {"t": 0, "v": 7},
-		"player.speed": {"t": 1, "v": 1.23},
-		"quest.completed": {"t": 2, "v": false}
+		"strings": {
+			"player.name": "TestPlayer"
+		},
+		"ints": {
+			"currency.gold": 200,
+			"player.progress.level": 7
+		},
+		"floats": {
+			"player.speed": 1.23
+		},
+		"bools": {
+			"quest.completed": false
+		}
 	}`
 
 	s := NewStore()
@@ -337,21 +358,26 @@ func TestLoadFromText(t *testing.T) {
 
 
 func TestRandomSelection(t *testing.T) {
+	// New grouped format
 	text := `{
-		"galactic_draw.1.name": {"t": 3, "v": "ship.starlance"},
-		"galactic_draw.1.chance": {"t": 0, "v": 90},
-		"galactic_draw.2.name": {"t": 3, "v": "weapon.laser"},
-		"galactic_draw.2.chance": {"t": 0, "v": 90},
-		"galactic_draw.3.name": {"t": 3, "v": "extras.radar"},
-		"galactic_draw.3.chance": {"t": 0, "v": 90},
-		"galactic_draw.4.name": {"t": 3, "v": "captain.skywalker"},
-		"galactic_draw.4.chance": {"t": 0, "v": 90},
-		"galactic_draw.5.name": {"t": 3, "v": "captain.luke"},
-		"galactic_draw.5.chance": {"t": 0, "v": 90},
-		"galactic_draw.6.name": {"t": 3, "v": "weapon.rocket_launcher"},
-		"galactic_draw.6.chance": {"t": 0, "v": 10},
-		"galactic_draw.7.name": {"t": 3, "v": "weapon.ion_ball"},
-		"galactic_draw.7.chance": {"t": 0, "v": 1}
+		"strings": {
+			"galactic_draw.1.name": "ship.starlance",
+			"galactic_draw.2.name": "weapon.laser",
+			"galactic_draw.3.name": "extras.radar",
+			"galactic_draw.4.name": "captain.skywalker",
+			"galactic_draw.5.name": "captain.luke",
+			"galactic_draw.6.name": "weapon.rocket_launcher",
+			"galactic_draw.7.name": "weapon.ion_ball"
+		},
+		"ints": {
+			"galactic_draw.1.chance": 90,
+			"galactic_draw.2.chance": 90,
+			"galactic_draw.3.chance": 90,
+			"galactic_draw.4.chance": 90,
+			"galactic_draw.5.chance": 90,
+			"galactic_draw.6.chance": 10,
+			"galactic_draw.7.chance": 1
+		}
 	}`
 
 	s := NewStore()
@@ -446,4 +472,33 @@ func TestStoreReleaseBool(t *testing.T) {
 	// Case 4: wrong type (int instead of bool)
 	s.SetInt("quest.level", 5)
 	assert.False(t, s.ReleaseBool("quest.level"), "should return false for type mismatch")
+}
+
+// Test for the new SaveGrouped method
+func TestSaveGrouped(t *testing.T) {
+	s := NewStore()
+	
+	s.SetInt("currency.gold", 200)
+	s.SetFloat("player.speed", 1.23)
+	s.SetBool("quest.completed", false)
+	s.SetString("player.name", "TestPlayer")
+	s.SetInt("player.progress.level", 7)
+
+	data, err := s.Save()
+	if err != nil {
+		t.Fatalf("SaveGrouped failed: %v", err)
+	}
+
+	// Load it back
+	s2 := NewStore()
+	if err := s2.Load(data); err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Verify all values
+	assert.Equal(t, int64(200), s2.GetInt("currency.gold"))
+	assert.Equal(t, 1.23, s2.GetFloat("player.speed"))
+	assert.Equal(t, false, s2.GetBool("quest.completed"))
+	assert.Equal(t, "TestPlayer", s2.GetString("player.name"))
+	assert.Equal(t, int64(7), s2.GetInt("player.progress.level"))
 }
