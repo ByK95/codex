@@ -360,7 +360,11 @@ func (s *Store) Save() ([]byte, error) {
     // traverse trie and group by type
     s.traverseAndGroup(s.root, "", &grouped)
 
-    return json.MarshalIndent(grouped, "", "  ")
+	b, err := json.Marshal(grouped)
+	if err != nil {
+		return json.RawMessage(""), err
+	}
+	return json.RawMessage(b), nil
 }
 
 func (s *Store) traverseAndGroup(n *node, prefix string, grouped *GroupedStore) {
