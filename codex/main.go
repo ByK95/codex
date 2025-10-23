@@ -3,6 +3,7 @@ package main
 /*
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 typedef struct {
     int x;
@@ -14,6 +15,48 @@ static inline Coord2d MakeCoord(int x, int y) {
     c.x = x;
     c.y = y;
     return c;
+}
+
+typedef struct {
+    char* ID;
+    int Qty;
+} CRequirement;
+
+typedef struct {
+    CRequirement** items;
+    int count;
+    int capacity;
+} CRequirementArray;
+
+// Allocate array with initial capacity
+static inline CRequirementArray* AllocRequirementArray(int capacity) {
+    CRequirementArray* arr = (CRequirementArray*)malloc(sizeof(CRequirementArray));
+    arr->items = (CRequirement**)malloc(sizeof(CRequirement*) * capacity);
+    arr->count = 0;
+    arr->capacity = capacity;
+    return arr;
+}
+
+// Add single requirement to array
+static inline void AddRequirement(CRequirementArray* arr, const char* id, int qty) {
+    if (arr->count >= arr->capacity) return;
+    CRequirement* r = (CRequirement*)malloc(sizeof(CRequirement));
+    size_t len = strlen(id) + 1;
+    r->ID = (char*)malloc(len);
+    memcpy(r->ID, id, len);
+    r->Qty = qty;
+    arr->items[arr->count++] = r;
+}
+
+// Free array and all items
+static inline void FreeRequirementArray(CRequirementArray* arr) {
+    if (!arr) return;
+    for (int i = 0; i < arr->count; i++) {
+        free(arr->items[i]->ID);
+        free(arr->items[i]);
+    }
+    free(arr->items);
+    free(arr);
 }
 */
 import "C"
@@ -507,7 +550,7 @@ func Voronoi_ZoneAt(x C.int, y C.int) C.int {
 	return C.int(voronoi.ZoneAt(int(x), int(y)))
 }
 
-// Voronoi_GetRandomInRadius
+//export Voronoi_GetRandomInRadius
 func Voronoi_GetRandomInRadius(x C.int, y C.int, zoneId C.int, radius C.int) C.Coord2d {
     px, py, ok := voronoi.RandomPositionInRadius(int(x), int(y), int(zoneId), int(radius));
 	if !ok {
@@ -563,6 +606,31 @@ func Crafting_GetFirstRequirement(managerName *C.char, craftID *C.char) *C.char 
 
 	return C.CString(c.Requirements[0].ID)
 }
+
+//export Crafting_GetAllRequirements
+func Crafting_GetAllRequirements(managerName *C.char, craftID *C.char) *C.CRequirementArray {
+	name := C.GoString(managerName)
+	id := C.GoString(craftID)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.AllocRequirementArray(0)
+	}
+
+	craftable, exists := m.GetCraftable(id)
+	if !exists || len(craftable.Requirements) == 0 {
+		return C.AllocRequirementArray(0)
+	}
+
+	arr := C.AllocRequirementArray(C.int(len(craftable.Requirements)))
+
+	for _, req := range craftable.Requirements {
+		C.AddRequirement(arr, C.CString(req.ID), C.int(req.Qty))
+	}
+
+	return arr
+}
+
 
 //export Helpers_GetUpgradeSelections
 func Helpers_GetUpgradeSelections(count C.int) C.bool {
