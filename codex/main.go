@@ -682,7 +682,7 @@ func Crafting_InitIterateCraftables(managerName *C.char) C.int {
 
 	m, ok := crafting.Get(name)
 	if !ok {
-		return C.CString("")
+		return C.int(0)
 	}
 
 	size := m.IterateCraftables()
