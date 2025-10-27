@@ -117,7 +117,7 @@ func InventoryAddItem(invID, id, stackable, maxStackSize, qty C.int) C.int {
     return count
 }
 
-//export InventoryGetRemainingCapacity
+//export InventoryRemainingCapacity
 func InventoryRemainingCapacity(invID, id, stackable, maxStackSize, qty C.int) C.int {
     inv := getInventory(int(invID))
     if inv == nil {
