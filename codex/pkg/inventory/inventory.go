@@ -84,6 +84,37 @@ func (inv *Inventory) AddItem(id int, stackable bool, maxStackSize int, qty int)
 	return qty == 0
 }
 
+// Returns how many items of the given ID could still fit in this inventory.
+// Considers existing partial stacks and empty slots.
+func (inv *Inventory) RemainingCapacity(id int, stackable bool, maxStackSize int) int {
+	totalCapacity := 0
+
+	if stackable {
+		// Fill remaining space in partial stacks first
+		if slots, ok := inv.partialStacks[id]; ok {
+			for _, idx := range slots {
+				slot := inv.Slots[idx]
+				if slot != nil && slot.Quantity < slot.MaxStackSize {
+					totalCapacity += slot.MaxStackSize - slot.Quantity
+				}
+			}
+		}
+	}
+
+	// Count all empty slots
+	for _, slot := range inv.Slots {
+		if slot == nil || slot.Quantity == 0 {
+			if stackable {
+				totalCapacity += maxStackSize
+			} else {
+				totalCapacity += 1
+			}
+		}
+	}
+
+	return totalCapacity
+}
+
 func (inv *Inventory) removePartialStack(itemID int, slotIdx int) {
 	slots := inv.partialStacks[itemID]
 	for i, idx := range slots {

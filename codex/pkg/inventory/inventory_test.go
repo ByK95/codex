@@ -177,3 +177,30 @@ func TestAddNotStackable(t *testing.T) {
 	assert.False(t, inventory.AddItem(nonStackableID, false, nonStackableMax, 2)) // only one slot left, so only one added
 	assert.Equal(t, 3, len(inventory.Slots))
 }
+
+func TestRemainingCapacity(t *testing.T) {
+	inv := NewInventory(5)
+	stackableID := 1
+	maxStack := 10
+
+	// Empty inventory: all slots available
+	assert.Equal(t, 50, inv.RemainingCapacity(stackableID, true, maxStack))
+
+	// Fill one slot partially
+	inv.Slots[0] = &Item{ID: stackableID, Quantity: 6, Stackable: true, MaxStackSize: maxStack}
+	inv.partialStacks[stackableID] = []int{0}
+	inv.itemCounts[stackableID] = 6
+	assert.Equal(t, 44, inv.RemainingCapacity(stackableID, true, maxStack)) // 4 left in stack + 4 empty slots * 10 = 44
+
+	// Fill another slot completely
+	inv.Slots[1] = &Item{ID: stackableID, Quantity: 10, Stackable: true, MaxStackSize: maxStack}
+	delete(inv.partialStacks, stackableID) // slot 1 is full
+	inv.partialStacks[stackableID] = []int{0}
+	assert.Equal(t, 34, inv.RemainingCapacity(stackableID, true, maxStack)) // 4 + (3 * 10)
+
+	// Non-stackable case: each slot can take only 1 item
+	inv2 := NewInventory(3)
+	assert.Equal(t, 3, inv2.RemainingCapacity(2, false, 1))
+	inv2.Slots[0] = &Item{ID: 2, Quantity: 1, Stackable: false, MaxStackSize: 1}
+	assert.Equal(t, 2, inv2.RemainingCapacity(2, false, 1))
+}

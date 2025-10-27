@@ -111,12 +111,23 @@ func getInventory(id int) *inventory.Inventory {
 func InventoryAddItem(invID, id, stackable, maxStackSize, qty C.int) C.int {
     inv := getInventory(int(invID))
     if inv == nil {
-        return 0
+        return -1
     }
-    if inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty)) {
-        return 1
+	count := inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty))
+    if  {
+        return count
     }
     return 0
+}
+
+//export InventoryGetRemainingCapacity
+func InventoryRemainingCapacity(invID, id, stackable, maxStackSize, qty C.int) C.int {
+    inv := getInventory(int(invID))
+    if inv == nil {
+        return -1
+    }
+
+    return inv.RemainingCapacity(int(id), stackable != 0, int(maxStackSize), int(qty))
 }
 
 //export InventoryRemoveItem
