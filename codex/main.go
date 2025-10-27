@@ -80,17 +80,39 @@ var (
     mu      sync.Mutex
 )
 
-var draggedSlot = inventory.DraggedSlot{Empty: true}
-var inv *inventory.Inventory
+var (
+    inventories = make(map[int]*inventory.Inventory)
+    draggedSlot = inventory.DraggedSlot{Empty: true}
+    nextInvID   = 1
+)
+
 
 //export InventoryNew
-func InventoryNew(slotCount C.int) {
-    inv = inventory.NewInventory(int(slotCount))
+func InventoryNew(slotCount C.int) C.int {
+    id := nextInvID
+    nextInvID++
+    inventories[id] = inventory.NewInventory(int(slotCount))
+    return C.int(id)
+}
+
+//export InventoryInitDragSlot
+func InventoryInitDragSlot() {
     draggedSlot = inventory.DraggedSlot{Item: nil, Empty: true}
 }
 
+func getInventory(id int) *inventory.Inventory {
+    if inv, ok := inventories[id]; ok {
+        return inv
+    }
+    return nil
+}
+
 //export InventoryAddItem
-func InventoryAddItem(id C.int, stackable C.int, maxStackSize C.int, qty C.int) C.int {
+func InventoryAddItem(invID, id, stackable, maxStackSize, qty C.int) C.int {
+    inv := getInventory(int(invID))
+    if inv == nil {
+        return 0
+    }
     if inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty)) {
         return 1
     }
@@ -98,7 +120,8 @@ func InventoryAddItem(id C.int, stackable C.int, maxStackSize C.int, qty C.int) 
 }
 
 //export InventoryRemoveItem
-func InventoryRemoveItem(id C.int, qty C.int) C.int {
+func InventoryRemoveItem(invID, id C.int, qty C.int) C.int {
+	inv := getInventory(int(invID))
     if inv.RemoveItem(int(id), int(qty)) {
         return 1
     }
@@ -106,12 +129,14 @@ func InventoryRemoveItem(id C.int, qty C.int) C.int {
 }
 
 //export InventoryCountItem
-func InventoryCountItem(id C.int) C.int {
+func InventoryCountItem(invID, id C.int) C.int {
+	inv := getInventory(int(invID))
     return C.int(inv.CountItem(int(id)))
 }
 
 //export InventoryPickUpFromSlot
-func InventoryPickUpFromSlot(slotIdx C.int) C.int {
+func InventoryPickUpFromSlot(invID, slotIdx C.int) C.int {
+	inv := getInventory(int(invID))
     if inv.PickUpFromSlot(&draggedSlot, int(slotIdx)) {
         return 1
     }
@@ -119,7 +144,8 @@ func InventoryPickUpFromSlot(slotIdx C.int) C.int {
 }
 
 //export InventoryDropToSlot
-func InventoryDropToSlot(targetIdx C.int) C.int {
+func InventoryDropToSlot(invID, targetIdx C.int) C.int {
+	inv := getInventory(int(invID))
     if inv.DropToSlot(&draggedSlot, int(targetIdx)) {
         return 1
     }
@@ -127,7 +153,8 @@ func InventoryDropToSlot(targetIdx C.int) C.int {
 }
 
 //export InventoryTakeOneFromSlot
-func InventoryTakeOneFromSlot(slotIdx C.int) C.int {
+func InventoryTakeOneFromSlot(invID, slotIdx C.int) C.int {
+	inv := getInventory(int(invID))
     if inv.TakeOneFromSlot(&draggedSlot, int(slotIdx)) {
         return 1
     }
@@ -135,7 +162,8 @@ func InventoryTakeOneFromSlot(slotIdx C.int) C.int {
 }
 
 //export InventoryGetSlotItemID
-func InventoryGetSlotItemID(slotIdx C.int) C.int {
+func InventoryGetSlotItemID(invID, slotIdx C.int) C.int {
+	inv := getInventory(int(invID))
 	if inv == nil {
 		return -1 // Invalid state
 	}
@@ -154,7 +182,8 @@ func InventoryGetSlotItemID(slotIdx C.int) C.int {
 }
 
 //export InventoryGetSlotQuantity
-func InventoryGetSlotQuantity(slotIdx C.int) C.int {
+func InventoryGetSlotQuantity(invID, slotIdx C.int) C.int {
+	inv := getInventory(int(invID))
 	if inv == nil {
 		return 0
 	}
@@ -173,7 +202,8 @@ func InventoryGetSlotQuantity(slotIdx C.int) C.int {
 }
 
 //export InventoryGetSlotStackable
-func InventoryGetSlotStackable(slotIdx C.int) C.bool {
+func InventoryGetSlotStackable(invID, slotIdx C.int) C.bool {
+	inv := getInventory(int(invID))
 	if inv == nil {
 		return false
 	}
@@ -192,7 +222,8 @@ func InventoryGetSlotStackable(slotIdx C.int) C.bool {
 }
 
 //export InventoryGetSlotMaxStackSize
-func InventoryGetSlotMaxStackSize(slotIdx C.int) C.int {
+func InventoryGetSlotMaxStackSize(invID, slotIdx C.int) C.int {
+	inv := getInventory(int(invID))
 	if inv == nil {
 		return 0
 	}
@@ -211,7 +242,8 @@ func InventoryGetSlotMaxStackSize(slotIdx C.int) C.int {
 }
 
 //export InventoryIsSlotEmpty
-func InventoryIsSlotEmpty(slotIdx C.int) C.bool {
+func InventoryIsSlotEmpty(invID, slotIdx C.int) C.bool {
+	inv := getInventory(int(invID))
 	if inv == nil {
 		return true
 	}
