@@ -114,7 +114,11 @@ func InventoryAddItem(invID, id, stackable, maxStackSize, qty C.int) C.int {
         return -1
     }
 	count := inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty))
-    return count
+    
+	if count  {
+		return C.int(1)
+	}
+	return C.int(0)
 }
 
 //export InventoryRemainingCapacity
