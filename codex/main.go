@@ -690,15 +690,8 @@ func Crafting_InitIterateCraftables(managerName *C.char) C.int {
 }
 
 //export Crafting_Next
-func Crafting_Next(managerName *C.char) *C.char {
-	name := C.GoString(managerName)
-
-	m, ok := crafting.Get(name)
-	if !ok {
-		return C.CString("")
-	}
-
-	return C.CString(m.Next())
+func Crafting_Next() *C.char {
+	return C.CString(crafting.Next())
 }
 
 
