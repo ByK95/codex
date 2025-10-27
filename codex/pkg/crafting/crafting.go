@@ -1,6 +1,7 @@
 package crafting
 
 import (
+	"codex/pkg/iterator"
 	"codex/pkg/storage"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,8 @@ type Manager struct {
 	craftables   map[string]Craftable
 	requireIndex map[string][]string
 }
+
+var craftIter *iterator.Iterator[string]
 
 func init() {
     // Register load and save functions
@@ -73,6 +76,24 @@ func (m *Manager) FindByRequirement(reqID string) []Craftable {
 		}
 	}
 	return results
+}
+
+// IterateCraftables returns an iterator over craftable IDs.
+func (m *Manager) IterateCraftables() int{
+	ids := make([]string, 0, len(m.craftables))
+	for id := range m.craftables {
+		ids = append(ids, id)
+	}
+	craftIter = iterator.NewIterator(ids)
+	return len(ids)
+}
+
+func Next() string{
+	if craftIter == nil {
+		return ""
+	}
+	val, _ := craftIter.Next()
+	return val
 }
 
 // --------- Global Registry ----------

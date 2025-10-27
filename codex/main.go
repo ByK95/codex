@@ -676,6 +676,31 @@ func Crafting_GetAllRequirements(managerName *C.char, craftID *C.char) *C.CRequi
 	return arr
 }
 
+//export Crafting_InitIterateCraftables
+func Crafting_InitIterateCraftables(managerName *C.char) C.int {
+	name := C.GoString(managerName)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.CString("")
+	}
+
+	size := m.IterateCraftables()
+	return C.int(size)
+}
+
+//export Crafting_Next
+func Crafting_Next(managerName *C.char) *C.char {
+	name := C.GoString(managerName)
+
+	m, ok := crafting.Get(name)
+	if !ok {
+		return C.CString("")
+	}
+
+	return C.CString(m.Next())
+}
+
 
 //export Helpers_GetUpgradeSelections
 func Helpers_GetUpgradeSelections(count C.int) C.bool {
