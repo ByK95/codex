@@ -456,9 +456,10 @@ func (s *Store) LoadFromText(text string) error {
     return s.Load(json.RawMessage(text))
 }
 
-func InitGetFullKeysIter(prefix string){
+func InitGetFullKeysIter(prefix string) int{
 	keys := GetStore().FullKeys(prefix)
 	iter = iterator.NewIterator(keys)
+	return len(keys)
 }
 
 func Next() string{

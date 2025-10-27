@@ -714,10 +714,10 @@ func Helpers_Next() *C.char {
 }
 
 //export Store_InitGetFullKeysIter
-func Store_InitGetFullKeysIter(prefix *C.char) C.bool {
+func Store_InitGetFullKeysIter(prefix *C.char) C.int {
 	p := C.GoString(prefix)
-	store.InitGetFullKeysIter(p)
-	return true
+	size := store.InitGetFullKeysIter(p)
+	return C.int(size)
 }
 
 //export Store_Clear
