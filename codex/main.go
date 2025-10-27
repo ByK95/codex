@@ -124,7 +124,8 @@ func InventoryRemainingCapacity(invID, id, stackable, maxStackSize, qty C.int) C
         return -1
     }
 
-    return inv.RemainingCapacity(int(id), stackable != 0, int(maxStackSize), int(qty))
+    result := inv.RemainingCapacity(int(id), stackable != 0, int(maxStackSize))
+	return C.int(result)
 }
 
 //export InventoryRemoveItem
