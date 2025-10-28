@@ -55,6 +55,7 @@ func TestDropToSlot(t *testing.T) {
 	draggedSlot := DraggedSlot{
 		Item:  &Item{ID: 1, Quantity: 5, Stackable: true, MaxStackSize: 10},
 		Empty: false,
+		OriginIdx: 1,
 	}
 
 	// Case 1: drop into empty slot
@@ -89,6 +90,7 @@ func TestDropToSlot(t *testing.T) {
 	draggedSlot = DraggedSlot{
 		Item:  &Item{ID: 2, Quantity: 3, Stackable: true, MaxStackSize: 5},
 		Empty: false,
+		OriginIdx: 1,
 	}
 	inventory.Slots[2] = &Item{ID: 3, Quantity: 4, Stackable: true, MaxStackSize: 10}
 	inventory.itemCounts[2] = 0
@@ -98,10 +100,10 @@ func TestDropToSlot(t *testing.T) {
 	slot2 := inventory.Slots[2]
 	assert.NotNil(t, slot2)
 	assert.Equal(t, 3, slot2.Quantity)      // now slot has dragged item
-	assert.Equal(t, 3, draggedSlot.Item.ID) // dragged now holds old slot item id 3
-	assert.Equal(t, 4, draggedSlot.Item.Quantity)
+	assert.Equal(t, 3, inventory.Slots[1].ID) // dragged now holds old slot item id 3
+	assert.Equal(t, 4, inventory.Slots[1].Quantity)
 	assert.Equal(t, 3, inventory.itemCounts[2])
-	assert.Equal(t, 0, inventory.itemCounts[3])
+	assert.Equal(t, 4, inventory.itemCounts[3])
 }
 
 func TestPickUpFromSlot(t *testing.T) {
@@ -203,4 +205,82 @@ func TestRemainingCapacity(t *testing.T) {
 	assert.Equal(t, 3, inv2.RemainingCapacity(2, false, 1))
 	inv2.Slots[0] = &Item{ID: 2, Quantity: 1, Stackable: false, MaxStackSize: 1}
 	assert.Equal(t, 2, inv2.RemainingCapacity(2, false, 1))
+}
+
+func TestPickUpAndDropSwap(t *testing.T) {
+	inv := NewInventory(2)
+
+	// slot 0: item A (id=1)
+	inv.AddItem(1, false, 1, 1)
+	// slot 1: item B (id=2)
+	inv.AddItem(2, false, 1, 1)
+
+	dragged := &DraggedSlot{Empty: true}
+
+	// Pick up from slot 0 (item A)
+	ok := inv.PickUpFromSlot(dragged, 0)
+	if !ok || dragged.Empty {
+		t.Fatalf("expected to pick up item A from slot 0")
+	}
+
+	// Drop it on slot 1 (item B)
+	ok = inv.DropToSlot(dragged, 1)
+	if !ok {
+		t.Fatalf("expected to drop/swap with slot 1")
+	}
+
+	// After swap:
+	// slot 0 should have item B
+	if inv.Slots[0] == nil || inv.Slots[0].ID != 2 {
+		t.Errorf("expected slot 0 to have item ID 2, got %+v", inv.Slots[0])
+	}
+
+	// slot 1 should have item A
+	if inv.Slots[1] == nil || inv.Slots[1].ID != 1 {
+		t.Errorf("expected slot 1 to have item ID 1, got %+v", inv.Slots[1])
+	}
+
+	// draggedSlot should now be empty
+	if !dragged.Empty {
+		t.Errorf("expected dragged slot to be empty after drop")
+	}
+}
+
+func TestDropIntoPartialStack(t *testing.T) {
+	inv := NewInventory(2)
+
+	// slot 0: item A (id=1), quantity 5, max stack 10
+	inv.AddItem(1, true, 10, 5)
+
+	// dragged slot: item A (id=1), quantity 4
+	dragged := &DraggedSlot{
+		Item:  &Item{ID: 1, Quantity: 4, Stackable: true, MaxStackSize: 10},
+		Empty: false,
+	}
+
+	// Drop dragged stack onto slot 0
+	ok := inv.DropToSlot(dragged, 0)
+	if !ok {
+		t.Fatalf("expected to drop onto partial stack")
+	}
+
+	slot0 := inv.Slots[0]
+	if slot0 == nil || slot0.ID != 1 {
+		t.Fatalf("expected slot 0 to still hold item A")
+	}
+
+	// Total quantity should be 9
+	if slot0.Quantity != 9 {
+		t.Errorf("expected slot 0 quantity 9, got %d", slot0.Quantity)
+	}
+
+	// Dragged slot should now be empty (all items merged)
+	if !dragged.Empty {
+		t.Errorf("expected dragged slot to be empty after merge")
+	}
+
+	// itemCounts should be updated correctly
+	if inv.itemCounts[1] != 9 {
+		t.Errorf("expected itemCounts[1] = 9, got %d", inv.itemCounts[1])
+	}
 }

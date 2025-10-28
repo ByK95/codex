@@ -18,8 +18,9 @@ type Inventory struct {
 }
 
 type DraggedSlot struct {
-	Item  *Item
-	Empty bool
+	Item      *Item
+	Empty     bool
+	OriginIdx int
 }
 
 func NewInventory(slotCount int) *Inventory {
@@ -179,6 +180,7 @@ func (inv *Inventory) PickUpFromSlot(draggedSlot *DraggedSlot, slotIdx int) bool
 
 	draggedSlot.Item = slot
 	draggedSlot.Empty = false
+	draggedSlot.OriginIdx = slotIdx
 	inv.Slots[slotIdx] = nil
 	inv.itemCounts[draggedSlot.Item.ID] -= draggedSlot.Item.Quantity
 
@@ -203,7 +205,13 @@ func (inv *Inventory) DropToSlot(draggedSlot *DraggedSlot, targetIdx int) bool {
 
 	// If item IDs differ OR items are same but not stackable, swap
 	if target.ID != draggedSlot.Item.ID || !target.Stackable {
+		inv.Slots[draggedSlot.OriginIdx] = draggedSlot.Item
+		inv.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
 		inv.swapSlots(draggedSlot, targetIdx)
+		inv.swapSlots(draggedSlot, draggedSlot.OriginIdx)
+		draggedSlot.Empty = true
+		draggedSlot.Item = nil
+		draggedSlot.OriginIdx = -1
 		return true
 	}
 
