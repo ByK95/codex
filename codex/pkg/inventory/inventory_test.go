@@ -284,3 +284,47 @@ func TestDropIntoPartialStack(t *testing.T) {
 		t.Errorf("expected itemCounts[1] = 9, got %d", inv.itemCounts[1])
 	}
 }
+
+func TestFullStackSwap(t *testing.T) {
+	inv := NewInventory(2)
+
+	// Slot 0: item A, full stack (10/10)
+	inv.Slots[0] = &Item{ID: 1, Quantity: 10, Stackable: true, MaxStackSize: 10}
+	inv.itemCounts[1] = 10
+
+	// Slot 1: item A, also full stack (10/10)
+	inv.Slots[1] = &Item{ID: 1, Quantity: 10, Stackable: true, MaxStackSize: 10}
+	inv.itemCounts[1] += 10
+
+	// DraggedSlot: item A, full stack (10/10)
+	dragged := &DraggedSlot{
+		Item:       &Item{ID: 1, Quantity: 10, Stackable: true, MaxStackSize: 10},
+		Empty:      false,
+		OriginIdx:  0,
+	}
+
+	// Drop dragged full stack on another full stack of same item
+	ok := inv.DropToSlot(dragged, 1)
+	if !ok {
+		t.Fatalf("expected DropToSlot to succeed for full stack swap")
+	}
+
+	// Dragged slot should now be empty
+	if !dragged.Empty || dragged.Item != nil {
+		t.Errorf("expected dragged slot to be empty after full stack swap, got %+v", dragged.Item)
+	}
+
+	// The items should be swapped in place (still same ID but technically swapped instances)
+	slot0 := inv.Slots[0]
+	slot1 := inv.Slots[1]
+
+	if slot0 == nil || slot1 == nil {
+		t.Fatalf("expected both slots to be non-nil")
+	}
+	if slot0 == slot1 {
+		t.Errorf("expected slots 0 and 1 to be different instances after swap")
+	}
+	if slot0.ID != 1 || slot1.ID != 1 {
+		t.Errorf("expected both slots to have item ID 1, got %v and %v", slot0.ID, slot1.ID)
+	}
+}
