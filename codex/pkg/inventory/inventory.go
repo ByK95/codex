@@ -270,8 +270,6 @@ func (inv *Inventory) DropToSlot(draggedSlot *DraggedSlot, targetIdx int) bool {
 	fullStackCheck := target.ID == draggedSlot.Item.ID && target.MaxStackSize == target.Quantity && draggedSlot.Item.Quantity == draggedSlot.Item.MaxStackSize
 	// If item IDs differ OR items are same but not stackable, swap
 	if target.ID != draggedSlot.Item.ID || !target.Stackable || fullStackCheck {
-		inv.Slots[draggedSlot.OriginIdx] = draggedSlot.Item
-		inv.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
 		inv.swapSlots(draggedSlot, targetIdx)
 		GetInventory(draggedSlot.OriginInvID).swapSlots(draggedSlot, draggedSlot.OriginIdx)
 		draggedSlot.Empty = true
@@ -309,11 +307,15 @@ func (inv *Inventory) swapSlots(draggedSlot *DraggedSlot, targetIdx int) {
 	target := inv.Slots[targetIdx]
 
 	// Update counts before swap
-	inv.itemCounts[target.ID] -= target.Quantity
+	if target != nil {
+		inv.itemCounts[target.ID] -= target.Quantity
+	}
 
-	oldTarget := *target
 	inv.Slots[targetIdx] = draggedSlot.Item
-	draggedSlot.Item = &oldTarget
+	if target != nil {
+		oldTarget := *target
+		draggedSlot.Item = &oldTarget
+	}
 
 	// Update counts after swap
 	inv.itemCounts[inv.Slots[targetIdx].ID] += inv.Slots[targetIdx].Quantity

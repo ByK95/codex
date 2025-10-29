@@ -334,3 +334,40 @@ func TestFullStackSwap(t *testing.T) {
 		t.Errorf("expected both slots to have item ID 1, got %v and %v", slot0.ID, slot1.ID)
 	}
 }
+
+func TestDropIntoFullStackDifferentInventory(t *testing.T) {
+	// Inventory A: origin inventory
+	invAID := NewInventoryInstance(2)
+	invA := GetInventory(invAID)
+	invA.AddItem(1, true, 10, 10)
+
+	// Inventory B: target inventory
+	invBID := NewInventoryInstance(2)
+	invB := GetInventory(invBID)
+	invB.AddItem(2, true, 10, 10) // full stack
+
+	// Drag item from invA slot 0
+	dragged := &DraggedSlot{Empty: true}
+	ok := invA.PickUpFromSlot(dragged, 0)
+	if !ok {
+		t.Fatalf("failed to pick up from invA")
+	}
+
+	// Drop into invB slot 0 (full stack)
+	ok = invB.DropToSlot(dragged, 0)
+	if !ok {
+		t.Fatalf("DropToSlot failed unexpectedly")
+	}
+
+	// Inspect results
+	slotB := invB.Slots[0]
+	if slotB.Quantity != 10 || slotB.ID != 1 {
+		t.Errorf("expected invB slot0 quantity 10, got %d ID: %d", slotB.Quantity, slotB.ID)
+	}
+
+	if invA.Slots[0].Quantity != 10 || invA.Slots[0].ID != 2 {
+		t.Errorf("expected invA slot0 quantity 10, got %d ID: %d", invA.Slots[0].Quantity, invA.Slots[0].ID)
+	}
+	
+}
+
