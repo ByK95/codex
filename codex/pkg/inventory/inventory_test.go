@@ -49,7 +49,8 @@ func TestTakeOneFromSlot(t *testing.T) {
 }
 
 func TestDropToSlot(t *testing.T) {
-	inventory := NewInventory(3)
+	inventoryID := NewInventoryInstance(3)
+	inventory := GetInventory(inventoryID)
 
 	// Setup: draggedSlot with 5 of item ID=1
 	draggedSlot := DraggedSlot{
@@ -91,6 +92,7 @@ func TestDropToSlot(t *testing.T) {
 		Item:  &Item{ID: 2, Quantity: 3, Stackable: true, MaxStackSize: 5},
 		Empty: false,
 		OriginIdx: 1,
+		OriginInvID: inventoryID,
 	}
 	inventory.Slots[2] = &Item{ID: 3, Quantity: 4, Stackable: true, MaxStackSize: 10}
 	inventory.itemCounts[2] = 0
@@ -208,7 +210,8 @@ func TestRemainingCapacity(t *testing.T) {
 }
 
 func TestPickUpAndDropSwap(t *testing.T) {
-	inv := NewInventory(2)
+	invID := NewInventoryInstance(2)
+	inv := GetInventory(invID)
 
 	// slot 0: item A (id=1)
 	inv.AddItem(1, false, 1, 1)
@@ -247,7 +250,8 @@ func TestPickUpAndDropSwap(t *testing.T) {
 }
 
 func TestDropIntoPartialStack(t *testing.T) {
-	inv := NewInventory(2)
+	invID := NewInventoryInstance(2)
+	inv := GetInventory(invID)
 
 	// slot 0: item A (id=1), quantity 5, max stack 10
 	inv.AddItem(1, true, 10, 5)
@@ -286,7 +290,8 @@ func TestDropIntoPartialStack(t *testing.T) {
 }
 
 func TestFullStackSwap(t *testing.T) {
-	inv := NewInventory(2)
+	invID := NewInventoryInstance(2)
+	inv := GetInventory(invID)
 
 	// Slot 0: item A, full stack (10/10)
 	inv.Slots[0] = &Item{ID: 1, Quantity: 10, Stackable: true, MaxStackSize: 10}
@@ -301,6 +306,7 @@ func TestFullStackSwap(t *testing.T) {
 		Item:       &Item{ID: 1, Quantity: 10, Stackable: true, MaxStackSize: 10},
 		Empty:      false,
 		OriginIdx:  0,
+		OriginInvID: invID,
 	}
 
 	// Drop dragged full stack on another full stack of same item

@@ -80,61 +80,43 @@ var (
     mu      sync.Mutex
 )
 
-var (
-    inventories = make(map[int]*inventory.Inventory)
-    draggedSlot = inventory.DraggedSlot{Empty: true}
-    nextInvID   = 1
-)
-
-
 //export InventoryNew
 func InventoryNew(slotCount C.int) C.int {
-    id := nextInvID
-    nextInvID++
-    inventories[id] = inventory.NewInventory(int(slotCount))
-    return C.int(id)
+    return C.int(inventory.NewInventoryInstance(int(slotCount)))
 }
 
 //export InventoryInitDragSlot
 func InventoryInitDragSlot() {
-    draggedSlot = inventory.DraggedSlot{Item: nil, Empty: true}
-}
-
-func getInventory(id int) *inventory.Inventory {
-    if inv, ok := inventories[id]; ok {
-        return inv
-    }
-    return nil
+    inventory.ResetDraggedSlot()
 }
 
 //export InventoryAddItem
 func InventoryAddItem(invID, id, stackable, maxStackSize, qty C.int) C.int {
-    inv := getInventory(int(invID))
+    inv := inventory.GetInventory(int(invID))
     if inv == nil {
         return -1
     }
-	count := inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty))
-    
-	if count  {
-		return C.int(1)
-	}
-	return C.int(0)
+    if inv.AddItem(int(id), stackable != 0, int(maxStackSize), int(qty)) {
+        return 1
+    }
+    return 0
 }
 
 //export InventoryRemainingCapacity
-func InventoryRemainingCapacity(invID, id, stackable, maxStackSize, qty C.int) C.int {
-    inv := getInventory(int(invID))
+func InventoryRemainingCapacity(invID, id, stackable, maxStackSize C.int) C.int {
+    inv := inventory.GetInventory(int(invID))
     if inv == nil {
         return -1
     }
-
-    result := inv.RemainingCapacity(int(id), stackable != 0, int(maxStackSize))
-	return C.int(result)
+    return C.int(inv.RemainingCapacity(int(id), stackable != 0, int(maxStackSize)))
 }
 
 //export InventoryRemoveItem
-func InventoryRemoveItem(invID, id C.int, qty C.int) C.int {
-	inv := getInventory(int(invID))
+func InventoryRemoveItem(invID, id, qty C.int) C.int {
+    inv := inventory.GetInventory(int(invID))
+    if inv == nil {
+        return -1
+    }
     if inv.RemoveItem(int(id), int(qty)) {
         return 1
     }
@@ -143,14 +125,20 @@ func InventoryRemoveItem(invID, id C.int, qty C.int) C.int {
 
 //export InventoryCountItem
 func InventoryCountItem(invID, id C.int) C.int {
-	inv := getInventory(int(invID))
+    inv := inventory.GetInventory(int(invID))
+    if inv == nil {
+        return 0
+    }
     return C.int(inv.CountItem(int(id)))
 }
 
 //export InventoryPickUpFromSlot
 func InventoryPickUpFromSlot(invID, slotIdx C.int) C.int {
-	inv := getInventory(int(invID))
-    if inv.PickUpFromSlot(&draggedSlot, int(slotIdx)) {
+    inv := inventory.GetInventory(int(invID))
+    if inv == nil {
+        return 0
+    }
+    if inv.PickUpFromSlot(inventory.GetDraggedSlot(), int(slotIdx)) {
         return 1
     }
     return 0
@@ -158,8 +146,11 @@ func InventoryPickUpFromSlot(invID, slotIdx C.int) C.int {
 
 //export InventoryDropToSlot
 func InventoryDropToSlot(invID, targetIdx C.int) C.int {
-	inv := getInventory(int(invID))
-    if inv.DropToSlot(&draggedSlot, int(targetIdx)) {
+    inv := inventory.GetInventory(int(invID))
+    if inv == nil {
+        return 0
+    }
+    if inv.DropToSlot(inventory.GetDraggedSlot(), int(targetIdx)) {
         return 1
     }
     return 0
@@ -167,8 +158,11 @@ func InventoryDropToSlot(invID, targetIdx C.int) C.int {
 
 //export InventoryTakeOneFromSlot
 func InventoryTakeOneFromSlot(invID, slotIdx C.int) C.int {
-	inv := getInventory(int(invID))
-    if inv.TakeOneFromSlot(&draggedSlot, int(slotIdx)) {
+    inv := inventory.GetInventory(int(invID))
+    if inv == nil {
+        return 0
+    }
+    if inv.TakeOneFromSlot(inventory.GetDraggedSlot(), int(slotIdx)) {
         return 1
     }
     return 0
@@ -176,7 +170,7 @@ func InventoryTakeOneFromSlot(invID, slotIdx C.int) C.int {
 
 //export InventoryGetSlotItemID
 func InventoryGetSlotItemID(invID, slotIdx C.int) C.int {
-	inv := getInventory(int(invID))
+	inv := inventory.GetInventory(int(invID))
 	if inv == nil {
 		return -1 // Invalid state
 	}
@@ -196,7 +190,7 @@ func InventoryGetSlotItemID(invID, slotIdx C.int) C.int {
 
 //export InventoryGetSlotQuantity
 func InventoryGetSlotQuantity(invID, slotIdx C.int) C.int {
-	inv := getInventory(int(invID))
+	inv := inventory.GetInventory(int(invID))
 	if inv == nil {
 		return 0
 	}
@@ -216,7 +210,7 @@ func InventoryGetSlotQuantity(invID, slotIdx C.int) C.int {
 
 //export InventoryGetSlotStackable
 func InventoryGetSlotStackable(invID, slotIdx C.int) C.bool {
-	inv := getInventory(int(invID))
+	inv := inventory.GetInventory(int(invID))
 	if inv == nil {
 		return false
 	}
@@ -236,7 +230,7 @@ func InventoryGetSlotStackable(invID, slotIdx C.int) C.bool {
 
 //export InventoryGetSlotMaxStackSize
 func InventoryGetSlotMaxStackSize(invID, slotIdx C.int) C.int {
-	inv := getInventory(int(invID))
+	inv := inventory.GetInventory(int(invID))
 	if inv == nil {
 		return 0
 	}
@@ -256,7 +250,7 @@ func InventoryGetSlotMaxStackSize(invID, slotIdx C.int) C.int {
 
 //export InventoryIsSlotEmpty
 func InventoryIsSlotEmpty(invID, slotIdx C.int) C.bool {
-	inv := getInventory(int(invID))
+	inv := inventory.GetInventory(int(invID))
 	if inv == nil {
 		return true
 	}

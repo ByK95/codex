@@ -8,6 +8,7 @@ type Item struct {
 }
 
 type Inventory struct {
+	ID    int
 	Slots []*Item
 
 	// itemID → total quantity in inventory (O(1) count)
@@ -18,9 +19,71 @@ type Inventory struct {
 }
 
 type DraggedSlot struct {
-	Item      *Item
-	Empty     bool
-	OriginIdx int
+	Item        *Item
+	Empty       bool
+	OriginIdx   int
+	OriginInvID int
+}
+
+var (
+	inventories = make(map[int]*Inventory)
+	nextInvID   = 1
+	draggedSlot = DraggedSlot{Empty: true}
+)
+
+// Creates a new inventory instance and returns its ID
+func NewInventoryInstance(slotCount int) int {
+	id := nextInvID
+	nextInvID++
+	inventories[id] = NewInventory(slotCount)
+	inventories[id].ID = id
+	return id
+}
+
+// Returns an inventory by ID
+func GetInventory(id int) *Inventory {
+	return inventories[id]
+}
+
+// Returns a pointer to the global dragged slot
+func GetDraggedSlot() *DraggedSlot {
+	return &draggedSlot
+}
+
+func ResetDraggedSlot() {
+	draggedSlot = DraggedSlot{Empty: true}
+}
+
+func CancelDraggedSlot() bool {
+	if draggedSlot.Empty || draggedSlot.Item == nil {
+		return false
+	}
+	origin := GetInventory(draggedSlot.OriginInvID)
+	if origin == nil {
+		return false
+	}
+	if draggedSlot.OriginIdx < 0 || draggedSlot.OriginIdx >= len(origin.Slots) {
+		return false
+	}
+
+	// If origin slot already occupied, try to add elsewhere
+	if origin.Slots[draggedSlot.OriginIdx] != nil {
+		ok := origin.AddItem(
+			draggedSlot.Item.ID,
+			draggedSlot.Item.Stackable,
+			draggedSlot.Item.MaxStackSize,
+			draggedSlot.Item.Quantity,
+		)
+		if !ok {
+			return false
+		}
+	} else {
+		origin.Slots[draggedSlot.OriginIdx] = draggedSlot.Item
+		origin.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
+	}
+
+	ResetDraggedSlot()
+	return true
 }
 
 func NewInventory(slotCount int) *Inventory {
@@ -181,6 +244,7 @@ func (inv *Inventory) PickUpFromSlot(draggedSlot *DraggedSlot, slotIdx int) bool
 	draggedSlot.Item = slot
 	draggedSlot.Empty = false
 	draggedSlot.OriginIdx = slotIdx
+	draggedSlot.OriginInvID = inv.ID
 	inv.Slots[slotIdx] = nil
 	inv.itemCounts[draggedSlot.Item.ID] -= draggedSlot.Item.Quantity
 
@@ -209,7 +273,7 @@ func (inv *Inventory) DropToSlot(draggedSlot *DraggedSlot, targetIdx int) bool {
 		inv.Slots[draggedSlot.OriginIdx] = draggedSlot.Item
 		inv.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
 		inv.swapSlots(draggedSlot, targetIdx)
-		inv.swapSlots(draggedSlot, draggedSlot.OriginIdx)
+		GetInventory(draggedSlot.OriginInvID).swapSlots(draggedSlot, draggedSlot.OriginIdx)
 		draggedSlot.Empty = true
 		draggedSlot.Item = nil
 		draggedSlot.OriginIdx = -1
