@@ -73,6 +73,7 @@ import (
 	"codex/pkg/helpers"
 	"sync"
 	"codex/pkg/storage"
+	"codex/pkg/spatial"
 )
 
 var (
