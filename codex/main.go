@@ -730,17 +730,17 @@ func Store_Next() *C.char {
 
 //export Spatial_RegisterGrid
 func Spatial_RegisterGrid(gridID C.int, width C.int, height C.int, cellSize C.double) {
-	RegisterGrid(int(gridID), int(width), int(height), float64(cellSize))
+	spatial.RegisterGrid(int(gridID), int(width), int(height), float64(cellSize))
 }
 
 //export Spatial_RemoveGrid
 func Spatial_RemoveGrid(gridID C.int) {
-	RemoveGrid(int(gridID))
+	spatial.RemoveGrid(int(gridID))
 }
 
 //export Spatial_IndexFromCoords
 func Spatial_IndexFromCoords(gridID C.int, x C.double, y C.double) C.int {
-	grid := GetGrid(int(gridID))
+	grid := spatial.GetGrid(int(gridID))
 	if grid == nil {
 		return C.int(-1)
 	}
@@ -749,7 +749,7 @@ func Spatial_IndexFromCoords(gridID C.int, x C.double, y C.double) C.int {
 
 //export Spatial_Insert
 func Spatial_Insert(gridID C.int, id C.int, x C.double, y C.double) {
-	grid := GetGrid(int(gridID))
+	grid := spatial.GetGrid(int(gridID))
 	if grid == nil {
 		return
 	}
@@ -758,7 +758,7 @@ func Spatial_Insert(gridID C.int, id C.int, x C.double, y C.double) {
 
 //export Spatial_Remove
 func Spatial_Remove(gridID C.int, id C.int, x C.double, y C.double) {
-	grid := GetGrid(int(gridID))
+	grid := spatial.GetGrid(int(gridID))
 	if grid == nil {
 		return
 	}
@@ -767,7 +767,7 @@ func Spatial_Remove(gridID C.int, id C.int, x C.double, y C.double) {
 
 //export Spatial_Closest
 func Spatial_Closest(gridID C.int, x C.double, y C.double, radius C.double, neighborCells C.int) C.int {
-	grid := GetGrid(int(gridID))
+	grid := spatial.GetGrid(int(gridID))
 	if grid == nil {
 		return C.int(-1)
 	}
