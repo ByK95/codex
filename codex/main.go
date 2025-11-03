@@ -762,7 +762,7 @@ func Spatial_Remove(gridID C.int, id C.int, x C.double, y C.double) {
 	if grid == nil {
 		return
 	}
-	grid.RemoveLoot(int(id), float64(x), float64(y))
+	grid.RemoveSpatial(int(id), float64(x), float64(y))
 }
 
 //export Spatial_Closest
@@ -771,7 +771,7 @@ func Spatial_Closest(gridID C.int, x C.double, y C.double, radius C.double, neig
 	if grid == nil {
 		return C.int(-1)
 	}
-	return C.int(grid.ClosestLoot(float64(x), float64(y), float64(radius), int(neighborCells)))
+	return C.int(grid.ClosestSpatial(float64(x), float64(y), float64(radius), int(neighborCells)))
 }
 
 
