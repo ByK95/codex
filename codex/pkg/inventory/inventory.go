@@ -8,6 +8,7 @@ type Item struct {
 }
 
 type Inventory struct {
+	ID    int
 	Slots []*Item
 
 	// itemID → total quantity in inventory (O(1) count)
@@ -18,8 +19,71 @@ type Inventory struct {
 }
 
 type DraggedSlot struct {
-	Item  *Item
-	Empty bool
+	Item        *Item
+	Empty       bool
+	OriginIdx   int
+	OriginInvID int
+}
+
+var (
+	inventories = make(map[int]*Inventory)
+	nextInvID   = 1
+	draggedSlot = DraggedSlot{Empty: true}
+)
+
+// Creates a new inventory instance and returns its ID
+func NewInventoryInstance(slotCount int) int {
+	id := nextInvID
+	nextInvID++
+	inventories[id] = NewInventory(slotCount)
+	inventories[id].ID = id
+	return id
+}
+
+// Returns an inventory by ID
+func GetInventory(id int) *Inventory {
+	return inventories[id]
+}
+
+// Returns a pointer to the global dragged slot
+func GetDraggedSlot() *DraggedSlot {
+	return &draggedSlot
+}
+
+func ResetDraggedSlot() {
+	draggedSlot = DraggedSlot{Empty: true}
+}
+
+func CancelDraggedSlot() bool {
+	if draggedSlot.Empty || draggedSlot.Item == nil {
+		return false
+	}
+	origin := GetInventory(draggedSlot.OriginInvID)
+	if origin == nil {
+		return false
+	}
+	if draggedSlot.OriginIdx < 0 || draggedSlot.OriginIdx >= len(origin.Slots) {
+		return false
+	}
+
+	// If origin slot already occupied, try to add elsewhere
+	if origin.Slots[draggedSlot.OriginIdx] != nil {
+		ok := origin.AddItem(
+			draggedSlot.Item.ID,
+			draggedSlot.Item.Stackable,
+			draggedSlot.Item.MaxStackSize,
+			draggedSlot.Item.Quantity,
+		)
+		if !ok {
+			return false
+		}
+	} else {
+		origin.Slots[draggedSlot.OriginIdx] = draggedSlot.Item
+		origin.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
+	}
+
+	ResetDraggedSlot()
+	return true
 }
 
 func NewInventory(slotCount int) *Inventory {
@@ -82,6 +146,37 @@ func (inv *Inventory) AddItem(id int, stackable bool, maxStackSize int, qty int)
 		}
 	}
 	return qty == 0
+}
+
+// Returns how many items of the given ID could still fit in this inventory.
+// Considers existing partial stacks and empty slots.
+func (inv *Inventory) RemainingCapacity(id int, stackable bool, maxStackSize int) int {
+	totalCapacity := 0
+
+	if stackable {
+		// Fill remaining space in partial stacks first
+		if slots, ok := inv.partialStacks[id]; ok {
+			for _, idx := range slots {
+				slot := inv.Slots[idx]
+				if slot != nil && slot.Quantity < slot.MaxStackSize {
+					totalCapacity += slot.MaxStackSize - slot.Quantity
+				}
+			}
+		}
+	}
+
+	// Count all empty slots
+	for _, slot := range inv.Slots {
+		if slot == nil || slot.Quantity == 0 {
+			if stackable {
+				totalCapacity += maxStackSize
+			} else {
+				totalCapacity += 1
+			}
+		}
+	}
+
+	return totalCapacity
 }
 
 func (inv *Inventory) removePartialStack(itemID int, slotIdx int) {
@@ -148,6 +243,8 @@ func (inv *Inventory) PickUpFromSlot(draggedSlot *DraggedSlot, slotIdx int) bool
 
 	draggedSlot.Item = slot
 	draggedSlot.Empty = false
+	draggedSlot.OriginIdx = slotIdx
+	draggedSlot.OriginInvID = inv.ID
 	inv.Slots[slotIdx] = nil
 	inv.itemCounts[draggedSlot.Item.ID] -= draggedSlot.Item.Quantity
 
@@ -170,9 +267,14 @@ func (inv *Inventory) DropToSlot(draggedSlot *DraggedSlot, targetIdx int) bool {
 		return true
 	}
 
+	fullStackCheck := target.ID == draggedSlot.Item.ID && target.MaxStackSize == target.Quantity && draggedSlot.Item.Quantity == draggedSlot.Item.MaxStackSize
 	// If item IDs differ OR items are same but not stackable, swap
-	if target.ID != draggedSlot.Item.ID || !target.Stackable {
+	if target.ID != draggedSlot.Item.ID || !target.Stackable || fullStackCheck {
 		inv.swapSlots(draggedSlot, targetIdx)
+		GetInventory(draggedSlot.OriginInvID).swapSlots(draggedSlot, draggedSlot.OriginIdx)
+		draggedSlot.Empty = true
+		draggedSlot.Item = nil
+		draggedSlot.OriginIdx = -1
 		return true
 	}
 
@@ -205,11 +307,15 @@ func (inv *Inventory) swapSlots(draggedSlot *DraggedSlot, targetIdx int) {
 	target := inv.Slots[targetIdx]
 
 	// Update counts before swap
-	inv.itemCounts[target.ID] -= target.Quantity
+	if target != nil {
+		inv.itemCounts[target.ID] -= target.Quantity
+	}
 
-	oldTarget := *target
 	inv.Slots[targetIdx] = draggedSlot.Item
-	draggedSlot.Item = &oldTarget
+	if target != nil {
+		oldTarget := *target
+		draggedSlot.Item = &oldTarget
+	}
 
 	// Update counts after swap
 	inv.itemCounts[inv.Slots[targetIdx].ID] += inv.Slots[targetIdx].Quantity

@@ -81,3 +81,41 @@ func TestRegistry_ResetSingleAndAll(t *testing.T) {
 	_, ok = Get("m2")
 	assert.False(t, ok)
 }
+
+func TestIterateCraftables(t *testing.T) {
+	loadTestData(t)
+
+	m, ok := Get("test")
+	assert.True(t, ok)
+	assert.NotNil(t, m)
+
+	m.IterateCraftables()
+
+	collected := []string{}
+	for {
+		id := Next()
+		if id == "" {
+			break
+		}
+		collected = append(collected, id)
+	}
+
+	// We know "test" manager has these IDs
+	assert.ElementsMatch(t, []string{"axe", "pickaxe", "potion"}, collected)
+}
+
+func TestIterateCraftables_EmptyManager(t *testing.T) {
+	m := NewManager()
+	m.IterateCraftables()
+
+	collected := []string{}
+	for {
+		id := Next()
+		if id == "" {
+			break
+		}
+		collected = append(collected, id)
+	}
+
+	assert.Empty(t, collected)
+}
