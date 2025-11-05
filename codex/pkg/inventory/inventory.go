@@ -141,20 +141,29 @@ func (inv *Inventory) AddItem(id int, stackable bool, maxStackSize int, qty int)
 		// Fill partial stacks first
 		slots, ok := inv.partialStacks[id]
 		if ok {
+			newSlots := slots[:0]
 			for _, idx := range slots {
 				slot := inv.Slots[idx]
+				if slot == nil || slot.ID != id {
+					continue // skip and remove invalid entry
+				}
 				space := slot.MaxStackSize - slot.Quantity
+				if space <= 0 {
+					continue
+				}
 				add := min(qty, space)
 				slot.Quantity += add
 				inv.itemCounts[id] += add
 				qty -= add
-				if slot.Quantity == slot.MaxStackSize {
-					inv.removePartialStack(id, idx)
+				if slot.Quantity < slot.MaxStackSize {
+					newSlots = append(newSlots, idx)
 				}
 				if qty == 0 {
+					inv.partialStacks[id] = newSlots
 					return true
 				}
 			}
+			inv.partialStacks[id] = newSlots
 		}
 	}
 
