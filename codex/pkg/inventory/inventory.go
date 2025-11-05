@@ -54,6 +54,47 @@ func ResetDraggedSlot() {
 	draggedSlot = DraggedSlot{Empty: true}
 }
 
+// Moves the dragged item back to its origin slot (if possible).
+// Returns true if restored, false otherwise.
+func RestoreDraggedItem(draggedSlot *DraggedSlot) bool {
+	if draggedSlot.Empty || draggedSlot.Item == nil {
+		return false
+	}
+
+	origin := GetInventory(draggedSlot.OriginInvID)
+	if origin == nil {
+		return false
+	}
+
+	idx := draggedSlot.OriginIdx
+	if idx < 0 || idx >= len(origin.Slots) {
+		return false
+	}
+
+	// If the original slot is free, restore it directly
+	if origin.Slots[idx] == nil {
+		origin.Slots[idx] = draggedSlot.Item
+		origin.itemCounts[draggedSlot.Item.ID] += draggedSlot.Item.Quantity
+		ResetDraggedSlot()
+		return true
+	}
+
+	// If occupied, try to add item somewhere else
+	ok := origin.AddItem(
+		draggedSlot.Item.ID,
+		draggedSlot.Item.Stackable,
+		draggedSlot.Item.MaxStackSize,
+		draggedSlot.Item.Quantity,
+	)
+	if ok {
+		ResetDraggedSlot()
+		return true
+	}
+
+	// Couldn't restore — leave draggedSlot unchanged
+	return false
+}
+
 func CancelDraggedSlot() bool {
 	if draggedSlot.Empty || draggedSlot.Item == nil {
 		return false

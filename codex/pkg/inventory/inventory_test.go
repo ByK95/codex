@@ -371,3 +371,21 @@ func TestDropIntoFullStackDifferentInventory(t *testing.T) {
 	
 }
 
+func TestRestoreDraggedItem(t *testing.T) {
+	// setup inventory and add one stack
+	invID := NewInventoryInstance(3)
+	inv := GetInventory(invID)
+	inv.AddItem(1, true, 10, 5)
+
+	dragged := GetDraggedSlot()
+	assert.True(t, inv.PickUpFromSlot(dragged, 0))
+	assert.False(t, dragged.Empty, "dragged slot should contain item")
+
+	// simulate trying to restore
+	ok := RestoreDraggedItem(dragged)
+	assert.True(t, ok, "should successfully restore dragged item")
+
+	assert.True(t, dragged.Empty, "dragged slot should be empty after restore")
+	assert.NotNil(t, inv.Slots[0], "slot should be refilled")
+	assert.Equal(t, 5, inv.Slots[0].Quantity, "quantity should match original")
+}
