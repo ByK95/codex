@@ -157,8 +157,8 @@ func InventoryDropToSlot(invID, targetIdx C.int) C.int {
     return 0
 }
 
-//export InventoryDropToSlot
-func InventoryRestoreDraggedItem(invID) C.int {
+//export InventoryRestoreDraggedItem
+func InventoryRestoreDraggedItem() C.int {
 	draggedSlot := inventory.GetDraggedSlot()
 	if inventory.RestoreDraggedItem(draggedSlot){
 		return 1
