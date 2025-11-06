@@ -40,6 +40,23 @@ func NewInventoryInstance(slotCount int) int {
 	return id
 }
 
+// Deletes a specific inventory instance by ID.
+// Returns true if deleted, false if not found.
+func DeleteInventoryInstance(id int) bool {
+	if _, ok := inventories[id]; !ok {
+		return false
+	}
+	delete(inventories, id)
+	return true
+}
+
+// Clears all inventories and resets ID counter.
+func ClearAllInventories() {
+	inventories = make(map[int]*Inventory)
+	nextInvID = 1
+	ResetDraggedSlot()
+}
+
 // Returns an inventory by ID
 func GetInventory(id int) *Inventory {
 	return inventories[id]

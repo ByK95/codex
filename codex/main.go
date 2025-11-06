@@ -274,6 +274,20 @@ func InventoryIsSlotEmpty(invID, slotIdx C.int) C.bool {
 	return C.bool(slot == nil || slot.Quantity == 0)
 }
 
+//export InventoryDelete
+func InventoryDelete(invID C.int) C.int {
+    if inventory.DeleteInventoryInstance(int(invID)) {
+        return 1
+    }
+    return 0
+}
+
+//export InventoryClearAll
+func InventoryClearAll() {
+    inventory.ClearAllInventories()
+}
+
+
 //export EquipmentDefineSlot
 func EquipmentDefineSlot(slotType *C.char, maxSlots C.int) C.int {
 	if equipment.GetManager().DefineSlot(C.GoString(slotType), int(maxSlots)) {
