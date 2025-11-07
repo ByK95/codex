@@ -287,6 +287,29 @@ func InventoryClearAll() {
     inventory.ClearAllInventories()
 }
 
+//export Inventory_InitItemIDIter
+func Inventory_InitItemIDIter(invID C.int) C.int {
+	inv := inventory.GetInventory(int(invID))
+
+	if inv == nil {
+		return 0
+	}
+
+	size := inv.InitItemIDIterator()
+	return C.int(size)
+}
+
+//export Inventory_Next
+func Inventory_Next(invID C.int) C.int {
+	inv := inventory.GetInventory(int(invID))
+
+	if inv == nil {
+		return 0
+	}
+	itemID := inv.NextItemID()
+	return C.int(itemID)
+}
+
 
 //export EquipmentDefineSlot
 func EquipmentDefineSlot(slotType *C.char, maxSlots C.int) C.int {

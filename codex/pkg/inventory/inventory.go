@@ -1,5 +1,7 @@
 package inventory
 
+import "codex/pkg/iterator"
+
 type Item struct {
 	ID           int
 	Quantity     int
@@ -29,6 +31,7 @@ var (
 	inventories = make(map[int]*Inventory)
 	nextInvID   = 1
 	draggedSlot = DraggedSlot{Empty: true}
+	itemIter *iterator.Iterator[int]
 )
 
 // Creates a new inventory instance and returns its ID
@@ -441,6 +444,30 @@ func (inv *Inventory) TakeOneFromSlot(draggedSlot *DraggedSlot, slotIdx int) boo
 	}
 
 	return false
+}
+
+// InitItemIDIter initializes an iterator over all item IDs in the inventory.
+// Returns the total number of unique item IDs.
+func (inv *Inventory) InitItemIDIter() int {
+	keys := make([]int, 0, len(inv.itemCounts))
+	for id := range inv.itemCounts {
+		keys = append(keys, id)
+	}
+	itemIter = iterator.NewIterator(keys)
+	return len(keys)
+}
+
+// NextItemID returns the next item ID from the iterator.
+// Returns -1 if iteration is complete or uninitialized.
+func (inv *Inventory) NextItemID() int {
+	if itemIter == nil {
+		return -1
+	}
+	val, ok := itemIter.Next()
+	if !ok {
+		return -1
+	}
+	return val
 }
 
 func min(a, b int) int {
