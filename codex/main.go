@@ -295,7 +295,7 @@ func Inventory_InitItemIDIter(invID C.int) C.int {
 		return 0
 	}
 
-	size := inv.InitItemIDIterator()
+	size := inv.InitItemIDIter()
 	return C.int(size)
 }
 
