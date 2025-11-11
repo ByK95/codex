@@ -282,6 +282,14 @@ func InventoryDelete(invID C.int) C.int {
     return 0
 }
 
+//export InventoryCancelDraggedSlot
+func InventoryCancelDraggedSlot() C.int {
+    if inventory.CancelDraggedSlot() {
+        return 1
+    }
+    return 0
+}
+
 //export InventoryClearAll
 func InventoryClearAll() {
     inventory.ClearAllInventories()
